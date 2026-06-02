@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0">
   <img src="https://img.shields.io/badge/license-Zyte%20EULA-lightgrey" alt="Zyte EULA">
-  <img src="https://img.shields.io/github/stars/zyte-ai/claude-skills?style=social" alt="GitHub stars">
+  <img src="https://img.shields.io/github/stars/zytedata/claude-skills?style=social" alt="GitHub stars">
 </p>
 
 ---
@@ -19,7 +19,7 @@
 ## Install
 
 ```bash
-claude plugin marketplace add zyte-ai/claude-skills
+claude plugin marketplace add zytedata/claude-skills
 claude plugin install zyte-web-data@zyte-ai
 ```
 
@@ -143,7 +143,7 @@ We recommend enabling automatic updates:
 To update manually:
 
 ```bash
-claude plugin marketplace update zyte-ai/claude-skills
+claude plugin marketplace update zytedata/claude-skills
 ```
 
 Then, in a Claude Code session:
@@ -162,7 +162,7 @@ We automatically evaluate skills and track both wall time and cost. We measure a
 
 ## Feedback
 
-If you find any issue — such as prompts that did not work as expected, or that caused excessive wall time or cost — please [open a GitHub issue](https://github.com/zyte-ai/claude-skills/issues).
+If you find any issue — such as prompts that did not work as expected, or that caused excessive wall time or cost — please [open a GitHub issue](https://github.com/zytedata/claude-skills/issues).
 
 Provide as much detail as possible to help us reproduce the issue. You are welcome to anonymize target websites or other data.
 
