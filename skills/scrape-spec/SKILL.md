@@ -7,6 +7,8 @@ allowed-tools: Agent, Skill, AskUserQuestion, Bash, Read, Write
 
 You are expanding and validating an extraction spec that was drafted by `/scrape-define`. Download diverse detail and listing pages, compare HTML variants, extract values, and optionally present for browser-based review.
 
+Read `${CLAUDE_SKILL_DIR}/../scrape/references/python-environments.md`.
+
 The input is a spec folder with at least one data type containing a schema and 1 page (from `/scrape-define`). The output is the same folder with more pages, validated values, and a navigation data type.
 
 ## Input
@@ -54,20 +56,42 @@ done
 cp .scrape/.work/{site_name}/explore/values/*.json {site_path}/navigation/values/ 2>/dev/null || true
 ```
 
-## Step 3: Analyze detail pages (both variants)
+## Step 3: Determine navigation HTML variant
+
+Before analyzing detail pages, independently determine the HTML variant navigation pages need. Run `extract_links.py` on all navigation pages using both variants:
+
+```bash
+mkdir -p .scrape/.work/{site_name}/analyze-nav
+
+uv run ${CLAUDE_SKILL_DIR}/../scrape-explore-site/scripts/extract_links.py \
+  {site_path}/navigation/pages/*/raw.html \
+  --group --base-url-from-meta \
+  > .scrape/.work/{site_name}/analyze-nav/nav.raw.json 2>/dev/null || true
+
+uv run ${CLAUDE_SKILL_DIR}/../scrape-explore-site/scripts/extract_links.py \
+  {site_path}/navigation/pages/*/rendered.html \
+  --group --base-url-from-meta \
+  > .scrape/.work/{site_name}/analyze-nav/nav.rendered.json 2>/dev/null || true
+```
+
+Read both output files and analyze the link groups. Determine which HTML variant provides better navigation coverage — consider the group structure, whether meaningful navigation links appear in each variant, and whether one variant reveals links the other misses. **Prefer raw unless there is clear evidence that rendered provides materially better navigation coverage.**
+
+Store the result as `nav_html_variant` for use in Step 6.
+
+## Step 4: Analyze detail pages (both variants)
 
 Analyze **all** detail pages (including the one from Stage 1) with **both** HTML variants. Launch one Agent per (page x variant) combination — all in a **single message** for parallel execution.
 
 ```
-Agent(description="analyze detail-1 raw", prompt="Run /scrape-analyze-page {site_path}/{data_type}/pages/detail-1/raw.html .scrape/.work/{site_name} {site_path}/{data_type}/spec.json")
-Agent(description="analyze detail-1 rendered", prompt="Run /scrape-analyze-page {site_path}/{data_type}/pages/detail-1/rendered.html .scrape/.work/{site_name} {site_path}/{data_type}/spec.json")
-Agent(description="analyze detail-2 raw", prompt="Run /scrape-analyze-page {site_path}/{data_type}/pages/detail-2/raw.html .scrape/.work/{site_name} {site_path}/{data_type}/spec.json")
+Agent(description="analyze detail-1 raw", prompt="/scrape-analyze-page Extract data from {site_path}/{data_type}/pages/detail-1/raw.html using the schema in {site_path}/{data_type}/spec.json and save it into .scrape/.work/{site_name}/analyze-page/detail-1.raw.json ")
+Agent(description="analyze detail-1 rendered", prompt="Run /scrape-analyze-page {site_path}/{data_type}/pages/detail-1/rendered.html using the schema in {site_path}/{data_type}/spec.json and save it into .scrape/.work/{site_name}/analyze-page/detail-1.rendered.json")
+Agent(description="analyze detail-2 raw", prompt="Run /scrape-analyze-page {site_path}/{data_type}/pages/detail-2/raw.html using the schema in {site_path}/{data_type}/spec.json and save it into .scrape/.work/{site_name}/analyze-page/detail-2.raw.json")
 ... (all in one message)
 ```
 
 Skip variants whose HTML files don't exist. The schema_path gives analyze-page the approved field names, descriptions, and examples — so it extracts with the correct names and value formats.
 
-## Step 4: Choose HTML variant
+## Step 5: Choose HTML variant
 
 Compare raw vs rendered results across all detail pages. Read all analysis files from `.scrape/.work/{site_name}/analyze-page/`.
 
@@ -103,7 +127,7 @@ In this case use the variant that the user selects.
 
 If the variant changes from what Stage 1 used, update `{site_path}/{data_type}/spec.json` with the new `html_variant`.
 
-## Step 5: Extract values
+## Step 6: Extract values
 
 Use `extract_values.py` to build values from analysis files, filtered by the schema:
 
@@ -119,11 +143,11 @@ This overwrites any existing values files (including the one from Stage 1) with 
 
 ### Navigation
 
-Write `{site_path}/navigation/spec.json` with the fixed navigation schema from `../scrape-review-schema/references/extraction-spec.md`, using the site URL and the chosen `html_variant`.
+Write `{site_path}/navigation/spec.json` with the fixed navigation schema from `${CLAUDE_SKILL_DIR}/../scrape/references/extraction-spec.md`, using the site URL and `nav_html_variant` (determined in Step 3).
 
-Navigation values were already copied from explore-site output in step 2.
+Navigation values were already copied from explore-site output in Step 2.
 
-## Step 6: Optional browser review
+## Step 7: Optional browser review
 
 Tell the user the extraction stats first ("Extracted values for {N} detail pages and {M} navigation pages."), then ask via `AskUserQuestion`:
 
@@ -133,7 +157,7 @@ Tell the user the extraction stats first ("Extracted values for {N} detail pages
   - `Skip browser review` — "Continue without opening the browser."
   - `Open browser review` — "Review the values in the browser."
 
-If the user picks `Skip review`, go to step 8.
+If the user picks `Skip review`, go to step 9.
 
 If the user picks `Open browser review`, invoke `/scrape-review-schema` with the data type spec:
 ```
@@ -142,11 +166,11 @@ If the user picks `Open browser review`, invoke `/scrape-review-schema` with the
 
 Report the review dir path to the user before opening.
 
-## Step 7: Apply feedback
+## Step 8: Apply feedback
 
 If the user reviews and provides feedback:
 
-If feedback starts with `APPROVED`: apply any included schema changes (drops, renames, description edits, kept fields → change source to "requested") and skip to step 8. The user has signed off.
+If feedback starts with `APPROVED`: apply any included schema changes (drops, renames, description edits, kept fields → change source to "requested") and skip to step 9. The user has signed off.
 
 If feedback does NOT start with `APPROVED` (user clicked "Request changes"):
 - Apply schema changes (drops, renames, description edits) directly
@@ -158,14 +182,14 @@ If feedback does NOT start with `APPROVED` (user clicked "Request changes"):
   If the user agrees, switch variant, update spec, and regenerate values.
 - If the other variant doesn't help: re-run analysis for corrected fields across ALL detail pages (using the chosen variant). Launch parallel Agents, one per page.
 
-After re-analysis or variant switch, re-extract values (step 5) and offer review again. Pass a changes summary as the 5th argument to `/scrape-review-schema`:
+After re-analysis or variant switch, re-extract values (step 6) and offer review again. Pass a changes summary as the 5th argument to `/scrape-review-schema`:
 ```
 /scrape-review-schema {site_path}/{data_type} .scrape/.work/{site_name} {schema_json} {html_variant} '["Re-analyzed price across all pages","Dropped field isbn"]'
 ```
 
-Loop steps 6-7 until the user approves or skips review.
+Loop steps 7-8 until the user approves or skips review.
 
-## Step 8: Finalize
+## Step 9: Finalize
 
 Update `{site_path}/{data_type}/spec.json` with any schema changes from the review.
 

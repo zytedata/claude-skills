@@ -7,6 +7,8 @@ allowed-tools: Bash, Read, Write
 
 You are adding an empty web-poet page object to a Scrapy project.
 
+Read `${CLAUDE_SKILL_DIR}/../scrape/references/python-environments.md`.
+
 ## Input
 
 The raw argument string is `$ARGUMENTS`. Split it into up to 6 whitespace-separated positional arguments:
@@ -20,29 +22,17 @@ The raw argument string is `$ARGUMENTS`. Split it into up to 6 whitespace-separa
 
 ## Process
 
-### 1. Determine required fields
-
-Required fields (no default value in the item class) need `@field` stubs so the page
-object doesn't fail on instantiation. Run in the **project's env**:
+Run from the **project root** (the directory containing `pyproject.toml`) so the item
+class is importable for auto-detecting required fields:
 
 ```bash
-uv run --project PROJECT_DIR ${CLAUDE_SKILL_DIR}/scripts/list_required_fields.py \
-    ITEM_CLASS
+uv run --project . --with libcst ${CLAUDE_SKILL_DIR}/scripts/add_page_object.py \
+    FILE_PATH CLASS_NAME DOMAIN BASE_CLASS ITEM_CLASS
 ```
 
-Outputs a JSON array of field names, e.g. `["name", "price"]`. If all fields have
-defaults, the output is `[]` — no stubs needed.
-
-### 2. Add the page object
-
-```bash
-uv run ${CLAUDE_SKILL_DIR}/scripts/add_page_object.py \
-    FILE_PATH CLASS_NAME DOMAIN BASE_CLASS ITEM_CLASS \
-    --fields FIELDS
-```
-
-Pass the required fields from step 1 as `--fields` (comma-separated). If no required
-fields, omit `--fields` — the class body will be `pass`.
+Required fields (those with no default in the item class) are detected automatically
+via itemadapter and get `@field` stubs. If all fields have defaults the class body is
+`pass`. Pass `--fields name,price` to override auto-detection.
 
 The script uses libcst for correct AST manipulation:
 - Creates the file if it doesn't exist

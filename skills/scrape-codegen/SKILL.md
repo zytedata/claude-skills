@@ -12,6 +12,8 @@ know the data type; it generates a PO that extracts according to the schema.
 
 The spec was produced by `/scrape-spec` and the project by `/scrape-ensure-project`.
 
+Read `python-environments.md` and `docs-access.md` from `${CLAUDE_SKILL_DIR}/../scrape/references`.
+
 ## Input
 
 The raw argument string is `$ARGUMENTS`. Split it into up to 3 whitespace-separated positional arguments:
@@ -28,7 +30,12 @@ Read `{spec_path}/spec.json` to get:
 - `schema.properties` — the field definitions
 - `html_variant` — which HTML to use (`raw` or `rendered`)
 - `url` — the starting URL (used for domain name)
-- `data_type` — what's being extracted (used for class naming)
+- `data_type` — what's being extracted (used for class naming); always singular (e.g. `product`, `book`)
+
+Derive names from `data_type` using these conventions (never pluralize):
+- `ClassName` = PascalCase + `Page` → `product` → `ProductPage`
+- `ItemClass` = PascalCase + `Item` → `product` → `ProductItem`
+- `module_name` = snake_case of `data_type` → `product` → `product`
 
 If `fields` is provided, filter `schema.properties` to only include those fields.
 
@@ -105,7 +112,7 @@ Generated page object at {project_dir}/{project_name}/pages/{module_name}.py:
 
 ## Codegen rules
 
-Follow the web-poet reference at `references/web-poet-reference.md`, plus:
+Follow the web-poet reference at `${CLAUDE_SKILL_DIR}/../scrape/references/web-poet.md`, plus:
 
 - Keep code simple and domain-general — not overfitted to example pages
 - Return `None` for missing data — never empty string, `False`, or `[]`
@@ -116,3 +123,4 @@ Follow the web-poet reference at `references/web-poet-reference.md`, plus:
 - If analysis shows a field comes from structured data (JSON-LD, microdata), use
   `extruct` — the metadata format matches `extract_metadata.py` output from earlier
   stages, so the same access patterns work in the page object
+- If a browser response is needed, use `BrowserPage` as the base class

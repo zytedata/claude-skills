@@ -23,8 +23,6 @@ Without --group, outputs one object per link:
 Timing info is printed to stderr.
 """
 
-__version__ = "0.1.0"
-
 import argparse
 import json
 import os
@@ -105,11 +103,12 @@ def group_by_path(links, max_parts=None, max_links=None):
         groups[path].append({"href": link["href"], "text": link["text"]})
 
     for path, group_links in groups.items():
+        total = len(group_links)
         if max_links is not None:
             group_links = group_links[:max_links]
         yield {
             "path": path,
-            "count": len(group_links),
+            "count": total,
             "links": group_links,
         }
 
@@ -209,7 +208,7 @@ def main():
         per_file_url = None
         if args.base_url_from_meta:
             per_file_url = base_url_from_meta(html_file)
-        groups = process_file(html_file, args, prefix, base_url_override=per_file_url)
+        groups = process_file(html_file, args, prefix, base_url_override=per_file_url, link_limit=args.link_limit)
         all_groups.extend(groups)
 
     if args.group:

@@ -10,8 +10,6 @@ Usage:
     uv run extract_metadata.py PAGE.html -o meta.json  # write to file
 """
 
-__version__ = "0.1.0"
-
 import argparse
 import json
 import sys

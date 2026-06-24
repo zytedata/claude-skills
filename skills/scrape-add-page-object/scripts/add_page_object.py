@@ -1,35 +1,30 @@
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["libcst"]
-# ///
 """Create an empty web-poet page object in a Python source file.
 
-Usage:
-    uv run add_page_object.py FILE_PATH NAME DOMAIN BASE_CLASS ITEM_CLASS [FIELDS]
+Must be run inside the project env so itemadapter and the item class are importable:
+
+    uv run --project . --with libcst add_page_object.py \\
+        FILE_PATH NAME DOMAIN BASE_CLASS ITEM_CLASS
 
 Arguments are import paths (module.Class):
     BASE_CLASS  — e.g. web_poet.WebPage, zyte_common_items.BrowserPage
     ITEM_CLASS  — e.g. books_project.items.ProductItem
 
-Example:
-    uv run add_page_object.py ./pages/books.py ProductPage books.toscrape.com web_poet.WebPage books_project.items.ProductItem
-    uv run add_page_object.py ./pages/books.py ProductPage books.toscrape.com web_poet.WebPage books_project.items.ProductItem name,price,rating
-
-Creates or appends to FILE_PATH a page object class with proper imports.
-If FIELDS is provided (comma-separated), generates @field stubs for each.
+Required fields (those with no default in the item class) are detected automatically
+via itemadapter and get @field stubs. Pass --fields name,price to override.
 
 Based on vscode-zyte's add_empty_page_object.py (uses libcst for correct AST manipulation).
 """
 
 from __future__ import annotations
 
-__version__ = "0.1.0"
-
 import argparse
 import json
+import sys
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
 
+from itemadapter import ItemAdapter
 from libcst import (
     Arg,
     BaseStatement,
@@ -74,9 +69,7 @@ def _fields(value: str) -> list[str]:
     fields = value.split(",")
     for f in fields:
         if not f.isidentifier():
-            raise argparse.ArgumentTypeError(
-                f"'{f}' is not a valid Python identifier"
-            )
+            raise argparse.ArgumentTypeError(f"'{f}' is not a valid Python identifier")
     return fields
 
 
@@ -93,6 +86,16 @@ def _import_path(value: str) -> tuple[str, str]:
             f"'{value}' is not a valid import path (expected module.Class, e.g. web_poet.WebPage)"
         )
     return parts[0], parts[1]
+
+
+def _get_required_fields(item_class_path: str) -> list[str]:
+    if not hasattr(ItemAdapter, "get_json_schema"):
+        print("itemadapter 0.12.0+ is required", file=sys.stderr)
+        sys.exit(1)
+    sys.path.insert(0, ".")
+    module, name = item_class_path.rsplit(".", 1)
+    cls = getattr(import_module(module), name)
+    return ItemAdapter.get_json_schema(cls).get("required", [])
 
 
 def _get_new_imports(info: POGenInfo) -> list[ImportItem]:
@@ -192,15 +195,21 @@ def main() -> None:
     parser.add_argument(
         "--fields",
         type=_fields,
-        default=[],
-        help="Comma-separated field names (e.g., name,price,rating)",
+        default=None,
+        help="Comma-separated field names (e.g., name,price,rating). "
+        "Auto-detected from item class when omitted and itemadapter is available.",
     )
     args = parser.parse_args()
 
     file_path = Path(args.file_path)
     base_module, base_class = args.base_class
     item_module, item_class = args.item_class
-    fields = args.fields
+    item_class_path = f"{item_module}.{item_class}" if item_module else item_class
+    fields = (
+        args.fields
+        if args.fields is not None
+        else _get_required_fields(item_class_path)
+    )
 
     info = POGenInfo(
         name=args.name,

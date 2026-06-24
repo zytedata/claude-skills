@@ -9,6 +9,8 @@ You are a general-purpose Scrapy Cloud assistant. You can deploy projects, sched
 spiders, manage jobs (list, stop), and direct users to the web UI to inspect items
 and logs — all using `shub` and the Scrapy Cloud HTTP API.
 
+Read `python-environments.md` and `docs-access.md` from `${CLAUDE_SKILL_DIR}/../scrape/references`.
+
 ## Rules
 
 - **DO NOT prematurely ask the user** for project ID, endpoint, credentials, or deployment
@@ -134,16 +136,12 @@ stack: scrapy:2.14-20260326  # replace with the latest tag fetched above
 
 ### 4. Deploy
 
-Run the deploy from the project root:
+Run the deploy from the project root with `uvx`, which fetches `shub` on
+demand — no separate install step, and it works whether or not `shub` is
+already on `PATH`:
 
 ```bash
-shub deploy
-```
-
-If `shub` is not found, install it first and retry:
-
-```bash
-uv tool install shub && shub deploy
+uvx shub deploy
 ```
 
 Stream and display the full output. A successful deploy looks like:
@@ -167,28 +165,22 @@ Run your spiders at: https://app.zyte.com/p/12345/
 
 ### 5. Report success
 
-Confirm the deployment and show the project link:
-
-```
-Deployed successfully!
-  Version : 3af023e-master
-  Spiders : 2
-  Project : https://app.zyte.com/p/12345/
-```
+Tell the user the deploy succeeded, and include the version, spider count,
+and project link (https://app.zyte.com/p/<project>/).
 
 ---
 
 ## Scheduling a job
 
-Use `shub schedule` to start a job that runs a spider on Scrapy Cloud without
-redeploying.
+Use `uvx shub schedule` to start a job that runs a spider on Scrapy Cloud
+without redeploying.
 
 Tag jobs with `skill`.
 
 ### Basic schedule
 
 ```bash
-shub schedule SPIDER --tag skill
+uvx shub schedule SPIDER --tag skill
 ```
 
 On success, shub prints the job ID and convenience links:
@@ -206,19 +198,19 @@ or watch it running in Zyte's web interface:
 Repeat `-a KEY=VALUE` for each argument:
 
 ```bash
-shub schedule myspider -a ARG1=VALUE1 -a ARG2=VALUE2 --tag skill
+uvx shub schedule myspider -a ARG1=VALUE1 -a ARG2=VALUE2 --tag skill
 ```
 
 ### With job-specific Scrapy settings (`-s`)
 
 ```bash
-shub schedule myspider -s LOG_LEVEL=DEBUG -s CLOSESPIDER_PAGECOUNT=10 --tag skill
+uvx shub schedule myspider -s LOG_LEVEL=DEBUG -s CLOSESPIDER_PAGECOUNT=10 --tag skill
 ```
 
 ### With a specific project
 
 ```bash
-shub schedule 33333/myspider --tag skill
+uvx shub schedule 33333/myspider --tag skill
 ```
 
 ### With units and priority
@@ -229,13 +221,13 @@ shub schedule 33333/myspider --tag skill
 | `-p` | Job priority: 0 (lowest) to 4 (highest)        |
 
 ```bash
-shub schedule myspider -p 3 -u 3 --tag skill
+uvx shub schedule myspider -p 3 -u 3 --tag skill
 ```
 
 ### Combined example
 
 ```bash
-shub schedule myspider \
+uvx shub schedule myspider \
   -a start_url=https://example.com \
   -s LOG_LEVEL=DEBUG \
   -p 2 \
@@ -412,10 +404,10 @@ trailing `/api/` path. For example:
 
 | Symptom                                      | Cause                                        | Fix                                                     |
 |----------------------------------------------|----------------------------------------------|---------------------------------------------------------|
-| `Error: No such command` / `shub not found`  | shub is not installed or not in `$PATH`      | Run `uv tool install shub` and check `$PATH`            |
+| `Error: No such command` / `shub not found`  | `shub` invoked directly but not installed    | Invoke it as `uvx shub …` — fetched on demand, no install |
 | `Authentication error` / `401`               | API key missing or invalid                   | Run `shub login` or set `$SHUB_APIKEY`                  |
 | `403`                                        | API key lacks access to this project         | Verify the project ID and key permissions               |
-| `Spider not found`                           | Spider name is wrong or project not deployed | Verify the spider name; deploy with `shub deploy` first |
+| `Spider not found`                           | Spider name is wrong or project not deployed | Verify the spider name; deploy with `uvx shub deploy` first |
 | `Project N does not exist`                   | Wrong project ID or alias                    | Check `scrapinghub.yml` or specify the correct ID       |
 | `Could not find requirements file`           | Wrong path in `scrapinghub.yml`              | Fix the `requirements.file` path and redeploy           |
 | `No module named scrapy` / build errors      | Dependency missing or wrong stack            | Update requirements file and redeploy                   |

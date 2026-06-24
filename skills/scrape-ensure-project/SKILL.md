@@ -8,7 +8,7 @@ allowed-tools: Bash, Read, Write
 You are ensuring a Scrapy project exists and is properly configured for web-poet
 page objects and Zyte API.
 
-Read `references/python-environments.md` for how to run scripts and project commands with `uv`.
+Read `${CLAUDE_SKILL_DIR}/../scrape/references/python-environments.md`.
 
 ## Input
 

@@ -3,7 +3,7 @@
 IMPORTANT: this spec is not stable.
 
 An extraction spec describes what to extract from a website. It is organized by
-site, with separate data type folders for each extraction target (e.g., products,
+site, with separate data type folders for each extraction target (e.g., product,
 navigation). Each data type folder is self-contained and can be passed to codegen
 independently.
 
@@ -28,14 +28,14 @@ independently.
 ```
 
 `{site-name}` is a short identifier (e.g., "books-toscrape"). `{data-type}` is
-the extraction target (e.g., "products", "navigation").
+the extraction target in singular form (e.g., "product", "navigation").
 
 Example with two data types:
 
 ```
 .scrape/books-toscrape/
   spec.json
-  products/
+  product/
     spec.json
     pages/detail-1/, detail-2/, detail-3/
     values/detail-1.json, detail-2.json, detail-3.json
@@ -57,7 +57,7 @@ Working state (analysis results, intermediate data) is kept separately in
 ```json
 {
   "url": "https://books.toscrape.com",
-  "data_types": ["products", "navigation"]
+  "data_types": ["product", "navigation"]
 }
 ```
 
@@ -66,7 +66,7 @@ Working state (analysis results, intermediate data) is kept separately in
 ```json
 {
   "url": "https://books.toscrape.com",
-  "data_type": "products",
+  "data_type": "product",
   "html_variant": "raw",
   "schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",

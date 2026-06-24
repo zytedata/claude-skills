@@ -15,8 +15,6 @@ Usage:
     uv run clean_html.py PAGE.html -o clean.html
 """
 
-__version__ = "0.1.0"
-
 import argparse
 import sys
 

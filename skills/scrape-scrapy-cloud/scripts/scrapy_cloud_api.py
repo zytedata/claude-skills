@@ -17,17 +17,19 @@ Examples:
     uv run scrapy_cloud_api.py POST https://app.zyte.com/api/jobs/stop.json -b project=859188 -b job=859188/1/1
 """
 
-__version__ = "0.1.0"
-
 import argparse
 import json
 import os
 import sys
 from base64 import b64encode
+from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 
+
+_meta_dir = Path(__file__).parent.parent.parent / "scrape"
+_meta = json.loads((_meta_dir / "meta.json").read_text())
 
 APIKEY_ENV_VAR = "SHUB_APIKEY"
 TIMEOUT_SECONDS = 10
@@ -118,7 +120,7 @@ if __name__ == "__main__":
     headers = {
         "Authorization": f"Basic {auth_token}",
         "Accept": "application/json",
-        "User-Agent": f"scrapy-cloud-api-wrapper/{__version__}",
+        "User-Agent": f"zytedata/{_meta['repo']}/{_meta['version']} (scrape-scrapy-cloud)",
     }
     response = make_api_request(
         args.method, full_url, headers, body_params if body_params else None

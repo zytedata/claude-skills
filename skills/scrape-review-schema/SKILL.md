@@ -7,6 +7,8 @@ allowed-tools: Bash, Read, Write
 
 You are generating a review page that lets the user verify the proposed schema and extracted values in their browser.
 
+Read `${CLAUDE_SKILL_DIR}/../scrape/references/python-environments.md`.
+
 ## Input
 
 The raw argument string is `$ARGUMENTS`. Split it into up to 5 positional arguments.
@@ -19,7 +21,7 @@ recognize their boundaries by matching brackets (and strip outer single/double q
 4. **html_variant**: which HTML to use — `raw` or `rendered`
 5. **changes** (optional): JSON array literal of change descriptions from the previous round (starts with `[`, ends with the matching `]`), e.g. `["Re-analyzed price across all pages","Dropped field isbn"]`
 
-The schema JSON uses JSON Schema format (see `references/extraction-spec.md` for full details):
+The schema JSON uses JSON Schema format (see `${CLAUDE_SKILL_DIR}/../scrape/references/extraction-spec.md` for full details):
 ```json
 {
   "type": "object",
@@ -65,26 +67,14 @@ cp {spec_path}/pages/{page_id}/{html_variant}.html ${REVIEW_DIR}/pages/{page_id}
 
 This flattens the directory structure for the review page's iframes.
 
-### 5. Start feedback server
-
-Start a one-shot HTTP server that will receive feedback from the review page:
-
-```bash
-FEEDBACK_FILE="${REVIEW_DIR}/feedback.txt"
-python3 "${CLAUDE_SKILL_DIR}/scripts/feedback-server.py" "${FEEDBACK_FILE}" &
-SERVER_PID=$!
-sleep 1
-AGENT_PORT=$(cat "${FEEDBACK_FILE}.port")
-```
-
-### 6. Generate data.js
+### 5. Generate data.js
 
 Build and write `${REVIEW_DIR}/data.js` with all the data the review page needs.
-Include `AGENT_URL` so the review page can send feedback directly.
-If `changes` was passed (the optional 5th argument), include `REVIEW_CHANGES` so the page shows what the agent did:
+Use the literal placeholder `AGENT_PORT_PLACEHOLDER` for the port — the server replaces it
+after binding. If `changes` was passed (the optional 5th argument), include `REVIEW_CHANGES` so the page shows what the agent did:
 
 ```javascript
-const AGENT_URL = "http://127.0.0.1:${AGENT_PORT}/feedback";
+const AGENT_URL = "http://127.0.0.1:AGENT_PORT_PLACEHOLDER/feedback";
 const REVIEW_CHANGES = ["Re-analyzed price across all pages", "Dropped field isbn"];
 const REVIEW_DATA = {
   fields: [
@@ -108,14 +98,18 @@ const REVIEW_DATA = {
 };
 ```
 
-### 7. Open in browser and wait for feedback
+### 6. Open in browser and wait for feedback
 
-Open the review page and immediately start waiting for feedback in the same command (so only one approval is needed):
+Run exactly the command below and wait for it to finish before doing anything else:
 
 ```bash
-open "${REVIEW_DIR}/review.html" && while [ ! -f "${FEEDBACK_FILE}" ]; do sleep 1; done && cat "${FEEDBACK_FILE}" && kill $SERVER_PID 2>/dev/null || true
+FEEDBACK_FILE="${REVIEW_DIR}/feedback.txt"
+uv run "${CLAUDE_SKILL_DIR}/scripts/feedback-server.py" "${REVIEW_DIR}" "${FEEDBACK_FILE}"
+cat "${FEEDBACK_FILE}"
 ```
 
-Report the review dir path to the user in the message before running this command, in case they need to reopen it.
+The script opens the review page in the browser, waits for the user
+to submit feedback, and exits by itself. Your only job is to wait for the command to finish,
+then read the feedback from `${FEEDBACK_FILE}`.
 
 Return the feedback text to the caller.

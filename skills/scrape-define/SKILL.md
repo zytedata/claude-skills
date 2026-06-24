@@ -7,13 +7,19 @@ allowed-tools: Agent, Skill, Bash, Read, Write, AskUserQuestion
 
 You are helping the user quickly define what to extract from a website. Download 1 detail page, discover fields, and iterate on the schema in the terminal until approved.
 
+Read `${CLAUDE_SKILL_DIR}/../scrape/references/python-environments.md`.
+
 The output is a draft spec folder with an approved schema and values (no stored pages — those are Stage 2's job). It can be expanded with `/scrape-spec` (more pages, variant comparison, navigation).
+
+**Hard constraints — never violate these:**
+- You MUST NOT fetch, read, grep, or parse any HTML file yourself. Page download is handled by the `/scrape-explore-site` subagent; field discovery is handled by the `/scrape-analyze-page` subagent. The main agent only orchestrates and consumes their outputs.
+- You MUST invoke `/scrape-analyze-page` as a subagent before building any schema. Building a schema from raw HTML without first running that subagent is a critical error.
 
 ## Parse intent
 
 From $ARGUMENTS, determine:
 - **target_url**: the starting URL
-- **data_type**: what the user wants (e.g. "products", "articles")
+- **data_type**: what is being extracted, **always singular** — whether the user names it or you infer it from the URL/page. If the user says "books" use "book", "products" → "product", "articles" → "article". If inferring, use the singular item noun (e.g. "product" not "products", "book" not "books"). Singularize before using anywhere.
 - **field_hints**: any specific fields the user mentioned (may be empty)
 - **site_name**: a short identifier (e.g. "books-toscrape", "realestate-listings") — derive from the site and data type
 
@@ -28,7 +34,7 @@ while [ -d ".scrape/$NAME" ]; do NAME="${BASE}-${N}"; N=$((N+1)); done
 echo "$NAME"
 ```
 
-Create the folder structure:
+Create the folder structure (`{data_type}` must be singular, e.g. `book` not `books`):
 ```
 .scrape/{site_name}/
   {data_type}/
@@ -49,15 +55,14 @@ Ask the user how to obtain a detail page via `AskUserQuestion`:
 
 **If the user picks "Provide a URL"**: follow up with a plain-text prompt — "Paste the detail page URL." — and wait for their next message. Then download that page using `download.py`:
 ```bash
-uv run ${CLAUDE_SKILL_DIR}/../scrape-explore-site/scripts/download.py --log-file .scrape/.work/{site_name}/explore/download.log <<'EOF'
+uv run ${CLAUDE_SKILL_DIR}/../scrape-explore-site/scripts/download.py --skill scrape-define --log-file .scrape/.work/{site_name}/explore/download.log <<'EOF'
 [{"url": "USER_URL", "output_dir": ".scrape/.work/{site_name}/explore/pages/detail-1", "page_type": "detail"}]
 EOF
 ```
 
-**If the user picks "Explore the site"**: Invoke `/scrape-explore-site` in a subagent with minimal counts:
-```
-Agent(description="explore-site initial", prompt="Run /scrape-explore-site {target_url} .scrape/.work/{site_name}/explore 1 0")
-```
+**If the user picks "Explore the site"**: Use a subagent to run the `/scrape-explore-site` skill with minimal counts. The subagent prompt should be:
+
+> Run /scrape-explore-site {target_url} .scrape/.work/{site_name}/explore 1 0
 
 This downloads the homepage + 1 detail page into `.scrape/.work/{site_name}/explore/pages/`.
 
@@ -69,7 +74,7 @@ Use `rendered.html` for analysis. If it doesn't exist, fall back to `raw.html`.
 
 Run a subagent with the analysis skill:
 ```
-Agent(description="analyze detail-1 rendered", prompt="Run /scrape-analyze-page .scrape/.work/{site_name}/explore/pages/detail-1/rendered.html .scrape/.work/{site_name}")
+Agent(description="analyze detail-1 rendered", prompt="/scrape-analyze-page Extract data from .scrape/.work/{site_name}/explore/pages/detail-1/rendered.html and save it into .scrape/.work/{site_name}/analyze-page/detail-1.rendered.json")
 ```
 
 Read the analysis result from `.scrape/.work/{site_name}/analyze-page/detail-1.rendered.json`.
@@ -115,12 +120,12 @@ Loop until the user approves. Re-display the schema after each change.
 
 ### Data type spec
 
-Write `.scrape/{site_name}/{data_type}/spec.json`. Include `examples` in each schema field — the user-approved value (with any corrections). This tells Stage 2 the expected format. Include `examples` for all fields. Truncate values longer than 200 chars with "..." — keep enough to show the format.
+Write `.scrape/{site_name}/{data_type}/spec.json`. The output MUST be valid JSON Schema (draft/2020-12) — use exactly the structure shown below. Do NOT invent a custom format (e.g. a plain array of field objects). Include `examples` in each schema field — the user-approved value (with any corrections). This tells Stage 2 the expected format. Include `examples` for all fields. Truncate values longer than 200 chars with "..." — keep enough to show the format.
 
 ```json
 {
   "url": "https://books.toscrape.com",
-  "data_type": "products",
+  "data_type": "product",
   "html_variant": "rendered",
   "schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",

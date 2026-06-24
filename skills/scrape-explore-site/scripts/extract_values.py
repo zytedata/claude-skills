@@ -18,8 +18,6 @@ Options:
   --patches '{"detail-1": {"field": "val"}}'  Per-page patches (directory mode)
 """
 
-__version__ = "0.1.0"
-
 import argparse
 import json
 import sys

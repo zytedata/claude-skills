@@ -23,8 +23,6 @@ If no Zyte API key is available, Playwright mode is used and requires:
     uv run playwright install chromium
 """
 
-__version__ = "0.1.0"
-
 import argparse
 import base64
 import json
@@ -38,6 +36,9 @@ import scrapy
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from scrapy_zyte_api.utils import USER_AGENT as ZAPI_USER_AGENT
+
+_meta_dir = Path(__file__).parent.parent.parent / "scrape"
+_meta = json.loads((_meta_dir / "meta.json").read_text())
 
 SHARED_SETTINGS = {
     "TWISTED_REACTOR": "twisted.internet.asyncioreactor.AsyncioSelectorReactor",
@@ -68,11 +69,13 @@ PLAYWRIGHT_SETTINGS = {
     "PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT": 30_000,
 }
 
-ZYTE_API_SETTINGS = {
-    "ADDONS": {"scrapy_zyte_api.Addon": 500},
-    "ZYTE_API_TRANSPARENT_MODE": True,
-    "_ZYTE_API_USER_AGENT": f"scraping-agent-skills/exploration {ZAPI_USER_AGENT}",
-}
+def _zyte_api_settings(skill: str) -> dict:
+    ua = f"zytedata/{_meta['repo']}/{_meta['version']} ({skill}) {ZAPI_USER_AGENT}"
+    return {
+        "ADDONS": {"scrapy_zyte_api.Addon": 500},
+        "ZYTE_API_TRANSPARENT_MODE": True,
+        "_ZYTE_API_USER_AGENT": ua,
+    }
 
 
 def normalize_zyte_api_key(value: str | None) -> str | None:
@@ -126,7 +129,7 @@ class DownloadSpider(scrapy.Spider):
         with open(meta_path, "w") as f:
             json.dump(meta, f, indent=2, ensure_ascii=False)
 
-    def start_requests(self):
+    async def start(self):
         for task in self.tasks:
             url = task["url"]
             output_dir = task["output_dir"]
@@ -256,6 +259,9 @@ def main():
     parser.add_argument(
         "--log-file", default="download.log", help="Log file (default: download.log)"
     )
+    parser.add_argument(
+        "--skill", default="scrape-explore-site", help="Skill name for User-Agent identification."
+    )
 
     args = parser.parse_args()
 
@@ -266,7 +272,7 @@ def main():
     if zyte_api_key:
         settings = {
             **SHARED_SETTINGS,
-            **ZYTE_API_SETTINGS,
+            **_zyte_api_settings(args.skill),
             "ZYTE_API_KEY": zyte_api_key,
             "LOG_ENABLED": False,
         }

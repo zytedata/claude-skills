@@ -1,20 +1,29 @@
 <p align="center">
-  <img src="assets/zyte-logo.png" alt="Zyte" width="180">
+	<img src="assets/zyte-logo.png" alt="Zyte" width="180">
 </p>
 
 <h1 align="center">Zyte Web Data for Claude Code</h1>
 
 <p align="center">
-  From a plain-English prompt to a working Scrapy spider.
+	From a plain-English prompt to a working Scrapy spider.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0">
-  <img src="https://img.shields.io/badge/license-Zyte%20EULA-lightgrey" alt="Zyte EULA">
-  <img src="https://img.shields.io/github/stars/zytedata/claude-skills?style=social" alt="GitHub stars">
+	<a href="https://github.com/zytedata/claude-skills/releases/tag/0.2.0">
+		<img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version 0.2.0">
+	</a>
+	<a href="https://github.com/zytedata/claude-skills/blob/main/LICENSE.md">
+		<img src="https://img.shields.io/badge/license-Zyte%20EULA-b02cce" alt="Zyte EULA">
+	</a>
+	
+	<a href="https://github.com/zytedata/claude-skills">
+		<img src="https://img.shields.io/github/stars/zytedata/claude-skills?style=social" alt="GitHub stars">
+	</a>
 </p>
 
 ---
+
+> Not using exclusively Claude Code? See [Zyte Coding Agent Add-Ons](https://docs.zyte.com/ai-code.html) for alternatives.
 
 ## Install
 
@@ -28,6 +37,8 @@ If Claude Code is already running, reload plugins in the active session:
 ```bash
 /reload-plugins
 ```
+
+If `/reload-plugins` isn't available (e.g. in the VS Code extension), restart Claude Code.
 
 See also: [Discovering and installing plugins](https://code.claude.com/docs/en/discover-plugins.md)
 
@@ -126,7 +137,7 @@ Project dependencies (scrapy, scrapy-poet, scrapy-zyte-api, web-poet, extruct, p
 Any scraping prompt triggers the skill automatically. For example:
 
 ```
-/scrape https://books.toscrape.com/ products
+Scrape books.toscrape.com
 ```
 
 The plugin walks you through schema approval interactively, then generates a complete, tested Scrapy project.
@@ -138,7 +149,7 @@ The plugin walks you through schema approval interactively, then generates a com
 We recommend enabling automatic updates:
 
 1. Enter `/plugin` in a Claude Code session
-2. Select **Marketplaces** → **zyte** → **Enable auto-update**
+2. Select **Marketplaces** → **zyte-ai** → **Enable auto-update**
 
 To update manually:
 
@@ -151,6 +162,8 @@ Then, in a Claude Code session:
 ```bash
 /reload-plugins
 ```
+
+If `/reload-plugins` isn't available (e.g. in the VS Code extension), restart Claude Code.
 
 ---
 
@@ -203,8 +216,8 @@ See [LICENSE.md](LICENSE.md) for the Zyte End User License Agreement.
 ## Demo
 
 <p align="center">
-  <a href="https://youtu.be/KU8DJISQYeM">
-    <img src="https://img.youtube.com/vi/KU8DJISQYeM/maxresdefault.jpg"
-         alt="Demo: Zyte Web Data for Claude Code" width="700">
-  </a>
+	<a href="https://youtu.be/KU8DJISQYeM">
+		<img src="https://img.youtube.com/vi/KU8DJISQYeM/maxresdefault.jpg"
+				 alt="Demo: Zyte Web Data for Claude Code" width="700">
+	</a>
 </p>

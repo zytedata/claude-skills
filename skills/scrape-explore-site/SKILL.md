@@ -7,6 +7,8 @@ allowed-tools: Bash, Read, Write
 
 You are exploring a website to discover and save a diverse set of pages. Given a start URL, find start, list/category, and detail pages within its scope.
 
+Read `${CLAUDE_SKILL_DIR}/../scrape/references/python-environments.md`.
+
 ## Input
 
 The raw argument string is `$ARGUMENTS`. Split it into up to 4 whitespace-separated positional arguments:
@@ -92,9 +94,9 @@ Prefer `rendered.html` (handles JS-rendered sites). Fall back to `raw.html` if `
 After step 1 (extract groups), classify each numbered group as one of:
 
 - **items**: links to detail pages. Many links sharing the same path pattern, with unique IDs or slugs in URLs.
-- **subCategories**: links to listing/category pages. Often in sidebar or navigation sections.
+- **subCategories**: links to listing/category pages that narrow or refine the current page's topic. Groups receive one label, so every URL must qualify. Before applying this label, note the last URL in the group in your reasoning — if any URL in the group is off-topic for the current page, put the whole group in **skip** instead.
 - **nextPage**: pagination links. Page numbers in URL or text, or "next"/"previous" text.
-- **skip**: (omit from --classify) navigation, footer, account, header links.
+- **skip**: (omit from --classify) navigation, footer, account, header links, and off-topic category links.
 
 Use all three signals: **path** (structural position), **href** (URL pattern), **text** (anchor text).
 

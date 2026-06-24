@@ -7,6 +7,8 @@ allowed-tools: Skill, Bash, Read, Write
 
 You are analyzing a detail page to produce extraction instructions for a code generation system. Given an HTML page, a schema, and expected values, you determine WHERE and HOW each field can be extracted from the page.
 
+Read `${CLAUDE_SKILL_DIR}/../scrape/references/python-environments.md`.
+
 Your analysis will be read by a separate code-generation agent that does **not** have access to the HTML. It must be detailed enough for that agent to write correct web-poet extraction code.
 
 ## Input

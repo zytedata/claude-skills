@@ -2,11 +2,13 @@
 name: scrape-create-spider
 description: Generate a Scrapy spider that wires page objects together
 argument-hint: "[project-dir] [item-page] [nav-page]"
-allowed-tools: Bash, Read, Write
+allowed-tools: Bash, Read, Write, Edit
 ---
 
 You are generating a Scrapy spider that wires together web-poet page objects (item
 extraction + navigation) into a working crawler.
+
+Read `python-environments.md` and `docs-access.md` from `${CLAUDE_SKILL_DIR}/../scrape/references`.
 
 ## Input
 
@@ -97,17 +99,23 @@ Read the scrapy-zyte-api reference:
 references/scrapy-zyte-api-reference.md
 ```
 
-### 5. Test the spider
+### 5. Test the spider and validate items
+
+Run a test crawl that saves items to a file so you can inspect them:
 
 ```bash
-cd {project_dir} && uv run scrapy crawl {spider_name} -s CLOSESPIDER_ITEMCOUNT=5
+cd {project_dir} && uv run scrapy crawl {spider_name} -s CLOSESPIDER_ITEMCOUNT=5 -o items.jsonl 2>&1
 ```
 
-If the spider produces items, report success. If it fails:
+**If the crawl fails** (non-zero exit, exceptions in output):
 - Check error messages
 - Verify page object imports are correct
 - Verify `SCRAPY_POET_DISCOVER` includes the pages module
 - Try with `ZYTE_API_LOG_REQUESTS=True` if using Zyte API
+
+If the crawl succeeds, read `items.jsonl` and check for obvious data-quality issues. If you find any, read the relevant page object, diagnose and fix the root cause, delete `items.jsonl`, and re-run. Repeat up to 2 more times (3 total). If items still look wrong after 3 attempts, stop and report what you found.
+
+Only declare the spider complete once items look correct.
 
 ### 6. Report
 

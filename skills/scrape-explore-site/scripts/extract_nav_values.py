@@ -11,8 +11,6 @@ Maps links.json format → navigation schema:
   subCategories → subcategories (array of {url, text})
 """
 
-__version__ = "0.1.0"
-
 import json
 import sys
 from pathlib import Path

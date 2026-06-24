@@ -22,8 +22,6 @@ Both variants are saved when available so the page object can declare either
 HttpResponse (WebPage) or BrowserResponse (BrowserPage) as its input.
 """
 
-__version__ = "0.1.0"
-
 import argparse
 import json
 import sys

@@ -1,6 +1,6 @@
 ---
 name: scrape
-description: End-to-end web scraping workflow — from URL to working spider with web-poet page objects
+description: End-to-end web scraping workflow — from URL to working spider with web-poet page objects. Use this for full-site or multiple-page crawls, not single-page extractions.
 argument-hint: "[url] [what to extract]"
 allowed-tools: Skill, Agent, Bash, Read, Write, TaskCreate, TaskUpdate, TaskList, TaskGet
 ---
@@ -17,7 +17,7 @@ Requires `uv`. Install if missing.
 The raw argument string is `$ARGUMENTS`. Split it into 2 positional arguments:
 
 1. **url**: target website URL (first whitespace-separated token)
-2. **what**: what the user wants to extract (the rest after the URL, e.g. "products", "job listings", "recipes" — free text, may contain spaces)
+2. **what**: what the user wants to extract (the rest after the URL, e.g. "product", "job listing", "recipe" — free text, may contain spaces)
 
 ## Track progress
 
@@ -61,11 +61,11 @@ Derive a project name from the domain (e.g., `books_toscrape_com`).
 
 ### Generate page objects (per data type)
 
-The spec contains separate data type folders (e.g., `products`, `navigation`).
+The spec contains separate data type folders (e.g., `product`, `navigation`).
 Call codegen once per data type:
 
 ```
-/scrape-codegen .scrape/{site_name}/products ./{project_name}
+/scrape-codegen .scrape/{site_name}/product ./{project_name}
 /scrape-codegen .scrape/{site_name}/navigation ./{project_name}
 ```
 

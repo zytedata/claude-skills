@@ -1,15 +1,4 @@
-const THEMES = [
-  { id: 'dusk',   name: 'Dusk',   dot: '#c46b8a' },
-  { id: 'clay',   name: 'Clay',   dot: '#c27428' },
-  { id: 'moss',   name: 'Moss',   dot: '#5a8a4a' },
-  { id: 'ocean',  name: 'Ocean',  dot: '#2e7ab8' },
-  { id: 'blush',  name: 'Blush',  dot: '#d4627a' },
-  { id: 'sand',   name: 'Sand',   dot: '#a08040' },
-  { id: 'mono',   name: 'Mono',   dot: '#666' },
-  { id: 'ink',    name: 'Ink',    dot: '#7c8af8' },
-  { id: 'storm',  name: 'Storm',  dot: '#38b2f8' },
-  { id: 'carbon', name: 'Carbon', dot: '#888' },
-];
+const THEME_IDS = new Set(['light', 'dark']);
 
 const state = {
   currentView: 'field',
@@ -27,8 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   REVIEW_DATA.fields.forEach(f => { state.descriptions[f.name] = f.description; });
 
-  const saved = localStorage.getItem('scrape-review-theme');
-  if (saved) document.body.dataset.theme = saved;
+  const saved = localStorage.getItem('theme');
+  const prefersDark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = THEME_IDS.has(saved) ? saved : prefersDark ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  document.body.setAttribute('data-theme', theme);
 
   setupViewToggle();
   setupThemeSwitcher();
@@ -56,31 +48,17 @@ function setupViewToggle() {
   });
 }
 
-// ── Theme ──
+// ── Theme (light/dark toggle) ──
 function setupThemeSwitcher() {
-  const menu = document.getElementById('theme-menu');
   const btn = document.getElementById('theme-btn');
-
-  THEMES.forEach(t => {
-    const el = document.createElement('div');
-    el.className = 'theme-option' + (document.body.dataset.theme === t.id ? ' active' : '');
-    el.innerHTML = `<span class="theme-dot" style="background:${t.dot}"></span>${t.name}`;
-    el.addEventListener('click', () => {
-      document.body.dataset.theme = t.id;
-      localStorage.setItem('scrape-review-theme', t.id);
-      menu.querySelectorAll('.theme-option').forEach(o => o.classList.remove('active'));
-      el.classList.add('active');
-      menu.classList.add('hidden');
-    });
-    menu.appendChild(el);
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const root = document.documentElement;
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    document.body.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
   });
-
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    menu.classList.toggle('hidden');
-  });
-
-  document.addEventListener('click', () => menu.classList.add('hidden'));
 }
 
 // ── Header copy ──
@@ -115,14 +93,29 @@ function setupHeaderSend() {
 }
 
 function sendToAgent(text, btn, label) {
+  clearStatusNotice();
   btn.disabled = true;
   btn.textContent = 'Sending\u2026';
   fetch(AGENT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: text })
     .then(r => {
-      if (r.ok) { btn.textContent = 'Sent!'; btn.classList.add('sent'); makeReadOnly(); }
-      else { btn.textContent = 'Error'; btn.disabled = false; setTimeout(() => { btn.textContent = label; }, 2000); }
+      if (r.ok) {
+        clearStatusNotice();
+        btn.textContent = 'Sent!';
+        btn.classList.add('sent');
+        makeReadOnly();
+      } else {
+        showStatusNotice(`Could not send feedback (${r.status}). Please try again. If the problem persists, ask the agent to reopen the review.`);
+        btn.textContent = 'Error';
+        btn.disabled = false;
+        setTimeout(() => { btn.textContent = label; }, 2000);
+      }
     })
-    .catch(() => { btn.textContent = 'Error'; btn.disabled = false; setTimeout(() => { btn.textContent = label; }, 2000); });
+    .catch(() => {
+      showStatusNotice('Could not send feedback. Please try again. If the problem persists, ask the agent to reopen the review.');
+      btn.textContent = 'Error';
+      btn.disabled = false;
+      setTimeout(() => { btn.textContent = label; }, 2000);
+    });
 }
 
 function hasCorrectionsOrFlags() {
@@ -161,8 +154,46 @@ function renderChanges() {
   panel.id = 'changes-panel';
   panel.innerHTML = `<div class="changes-header"><span>Changes since last review</span><button onclick="this.closest('#changes-panel').remove()">&times;</button></div>
     <ul>${REVIEW_CHANGES.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`;
-  const main = document.getElementById('main');
-  main.parentNode.insertBefore(panel, main);
+  const content = document.getElementById('content');
+  content.parentNode.insertBefore(panel, content);
+}
+
+function forceIframeLightMode(iframe) {
+  try {
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    if (!doc || !doc.head) return false;
+
+    let meta = doc.querySelector('meta[name="color-scheme"]');
+    if (meta) {
+      meta.content = 'light';
+    } else {
+      meta = doc.createElement('meta');
+      meta.name = 'color-scheme';
+      meta.content = 'light';
+      doc.head.appendChild(meta);
+    }
+
+    if (!doc.querySelector('#force-light-mode-style')) {
+      const style = doc.createElement('style');
+      style.id = 'force-light-mode-style';
+      style.textContent = ':root { color-scheme: light !important; }';
+      doc.head.appendChild(style);
+    }
+
+    return true;
+  } catch (error) {
+    const isExpectedCrossOrigin =
+      error instanceof DOMException &&
+      (error.name === 'SecurityError' || error.name === 'NotAllowedError');
+
+    if (isExpectedCrossOrigin) {
+      console.debug('Skipping iframe light-mode forcing due to cross-origin iframe');
+      return false;
+    }
+
+    console.error('forceIframeLightMode failed unexpectedly', error);
+    return false;
+  }
 }
 
 // ── Sidebar ──
@@ -175,7 +206,7 @@ function renderSidebar() {
     const requested = REVIEW_DATA.fields.filter(f => f.source === 'requested');
     const discovered = REVIEW_DATA.fields.filter(f => f.source === 'discovered');
 
-    const addFieldItem = (field) => {
+    const addFieldItem = (field, container) => {
       const el = document.createElement('div');
       el.className = 'sidebar-item';
       if (state.selectedField === field.name) el.classList.add('active');
@@ -189,24 +220,27 @@ function renderSidebar() {
         renderFieldView(field);
         pushState();
       });
-      sidebar.appendChild(el);
+      container.appendChild(el);
     };
 
-    if (requested.length) {
-      const label = document.createElement('div');
-      label.className = 'sidebar-label';
-      label.textContent = 'Requested';
-      sidebar.appendChild(label);
-      requested.forEach(addFieldItem);
-    }
+    const addGroup = (label, fields) => {
+      if (!fields.length) return;
+      const details = document.createElement('details');
+      details.className = 'sidebar-group';
+      details.open = true;
+      const summary = document.createElement('summary');
+      summary.className = 'sidebar-group__header';
+      summary.innerHTML = `<span class="sidebar-group__label">${label}</span><span class="sidebar-group__chevron" aria-hidden="true">⌄</span>`;
+      const list = document.createElement('div');
+      list.className = 'sidebar-group__list';
+      details.appendChild(summary);
+      details.appendChild(list);
+      fields.forEach(f => addFieldItem(f, list));
+      sidebar.appendChild(details);
+    };
 
-    if (discovered.length) {
-      const label = document.createElement('div');
-      label.className = 'sidebar-label';
-      label.textContent = 'Discovered';
-      sidebar.appendChild(label);
-      discovered.forEach(addFieldItem);
-    }
+    addGroup('Requested', requested);
+    addGroup('Discovered', discovered);
   } else {
     Object.keys(REVIEW_DATA.pages).forEach(pk => {
       const el = document.createElement('div');
@@ -287,8 +321,9 @@ function renderFieldView(field) {
       </div>`;
 
     if (hasVal || action?.type === 'correct') {
-      h += `<div class="vr-value${trunc?' truncated':''}">${escapeHtml(vs)}</div>`;
-      if (trunc) h += `<div class="vr-expand" onclick="toggleExpand(this)">more</div>`;
+      h += `<div class="vr-body"><div class="vr-value${trunc?' truncated':''}">${escapeHtml(vs)}</div>`;
+      if (trunc) h += `<button type="button" class="vr-expand" onclick="toggleExpand(this)">Show more</button>`;
+      h += `</div>`;
     } else {
       h += `<div class="vr-missing">not extracted</div>`;
     }
@@ -324,8 +359,9 @@ function renderPageView(pk) {
       <div class="vc-header"><span class="vc-name">${field.name}</span><span class="vc-type">${field.type}</span></div>`;
 
     if (hasVal || action?.type === 'correct') {
-      fh += `<div class="vc-content${trunc?' truncated':''}">${escapeHtml(vs)}</div>`;
-      if (trunc) fh += `<div class="vc-expand" onclick="toggleExpand(this)">more</div>`;
+      fh += `<div class="vc-body"><div class="vc-content${trunc?' truncated':''}">${escapeHtml(vs)}</div>`;
+      if (trunc) fh += `<button type="button" class="vc-expand" onclick="toggleExpand(this)">Show more</button>`;
+      fh += `</div>`;
     } else {
       fh += `<div class="vc-missing">not extracted</div>`;
     }
@@ -355,7 +391,7 @@ function renderPageView(pk) {
           </div>
         </div>
       </div>
-      <iframe src="pages/${pk}.html" sandbox="allow-same-origin"></iframe>
+      <iframe src="pages/${pk}.html" sandbox="allow-same-origin" onload="forceIframeLightMode(this)"></iframe>
     </div></div>`;
 
   attachPopoverHandlers(content);
@@ -675,10 +711,11 @@ function toggleExpand(el) {
   const v = el.previousElementSibling;
   v.classList.toggle('truncated');
   v.classList.toggle('expanded');
-  el.textContent = v.classList.contains('expanded') ? 'less' : 'more';
+  el.textContent = v.classList.contains('expanded') ? 'Show less' : 'Show more';
 }
 
 function makeReadOnly() {
+  clearStatusNotice();
   document.body.classList.add('read-only');
   const banner = document.createElement('div');
   banner.id = 'readonly-banner';
@@ -691,6 +728,33 @@ function makeReadOnly() {
   const changes = document.getElementById('header-request-changes');
   if (!approve.classList.contains('sent')) approve.style.display = 'none';
   if (!changes.classList.contains('sent')) changes.style.display = 'none';
+}
+
+function getStatusNotice() {
+  let notice = document.getElementById('status-notice');
+  if (notice) return notice;
+
+  notice = document.createElement('div');
+  notice.id = 'status-notice';
+  notice.className = 'hidden';
+  notice.setAttribute('role', 'alert');
+  notice.setAttribute('aria-live', 'assertive');
+  notice.innerHTML = `<div class="status-notice__body"></div><button type="button" class="status-notice__close" aria-label="Dismiss notification">&times;</button>`;
+  notice.querySelector('.status-notice__close').addEventListener('click', clearStatusNotice);
+  document.body.appendChild(notice);
+  return notice;
+}
+
+function showStatusNotice(message) {
+  const notice = getStatusNotice();
+  notice.querySelector('.status-notice__body').textContent = message;
+  notice.classList.remove('hidden');
+}
+
+function clearStatusNotice() {
+  const notice = document.getElementById('status-notice');
+  if (!notice) return;
+  notice.classList.add('hidden');
 }
 
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }

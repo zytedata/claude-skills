@@ -14,8 +14,6 @@ The groups file should contain the raw output from extract_links.py --group,
 with one "N: {json}" line per group.
 """
 
-__version__ = "0.1.0"
-
 import argparse
 import json
 import os

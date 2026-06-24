@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""One-shot HTTP server that receives review feedback and writes it to a file."""
+"""One-shot HTTP server that patches data.js, opens the review page, and receives feedback."""
 
-__version__ = "0.1.0"
-
+import pathlib
 import sys
 import threading
+import webbrowser
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 
@@ -37,9 +37,14 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    Handler.output_path = sys.argv[1]
+    review_dir = pathlib.Path(sys.argv[1])
+    Handler.output_path = sys.argv[2]
+
     srv = HTTPServer(("127.0.0.1", 0), Handler)
     port = srv.server_address[1]
-    with open(sys.argv[1] + ".port", "w") as f:
-        f.write(str(port))
+
+    data_js = review_dir / "data.js"
+    data_js.write_text(data_js.read_text().replace("AGENT_PORT_PLACEHOLDER", str(port)))
+
+    webbrowser.open((review_dir / "review.html").as_uri())
     srv.serve_forever()

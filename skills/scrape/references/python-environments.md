@@ -17,7 +17,7 @@ use this pattern (e.g., `add_page_object.py`, `download.py`, `clean_html.py`).
 uv run --project PROJECT_DIR path/to/script.py ARGS
 ```
 Runs in the project's venv so the script can import project modules (items, page
-objects, etc.). Used by `list_required_fields.py`.
+objects, etc.).
 
 ## Running project commands (uv run)
 

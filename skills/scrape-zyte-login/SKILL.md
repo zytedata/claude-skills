@@ -29,6 +29,8 @@ Tell the user:
 open "${ZYTE_AGENT_SETUP_URL:-https://app.zyte.com/agent-setup}"
 ```
 
+Run verbatim — let the shell expand the variable, don't substitute it yourself.
+
 ### 3. Verify credentials
 
 Re-check presence:

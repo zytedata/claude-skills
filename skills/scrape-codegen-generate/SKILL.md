@@ -23,10 +23,7 @@ Plus, taken from the surrounding prompt text (not from the argument string):
 
 ### 1. Read inputs
 
-Read the web-poet API reference:
-```
-../scrape-codegen/references/web-poet-reference.md
-```
+Read `web-poet.md` and `docs-access.md` from `${CLAUDE_SKILL_DIR}/../scrape/references/`.
 
 Read the schema from `{spec_path}` — use the `properties` object inside `schema`.
 
@@ -51,10 +48,16 @@ For each field in the schema, review all per-page analyses together:
 
 ### 3. Generate page object code
 
+**No content filtering — ever.** Even if the user's prompt asks to filter,
+exclude, or limit results by value, do NOT implement that logic in the page
+object. Page objects extract; spiders filter. Mention in your summary that
+filtering belongs at the spider level.
+
 Generate a complete, self-contained Python module following the web-poet reference. The code must:
 
 - **Work across the domain**: not just for the analyzed pages. Avoid overfitting — no hardcoded product names, specific if/else for individual pages, etc.
 - **Be simple**: prefer the simplest approach that works. Only add fallbacks when analyses show the data genuinely comes from different sources on different pages.
+- Use BrowserPage as base class if a browser response is needed.
 - **Handle missing data**: return `None` when a field is not present (never empty string or `[]`).
 - **Match schema types**: return values matching the JSON schema types.
 - **Use recommended libraries**: `extruct` for JSON-LD/microdata, `price_parser` for prices, `jmespath` for JSON queries.
