@@ -67,6 +67,6 @@ Then reload plugins in any active Claude Code session:
 - `/scrape-analyze-page`: no longer triggered when the user's request contains
   a URL — the skill is now correctly limited to locally saved HTML files.
 
-## 0.1.0 — 2026-05-12
+## 0.1.0 (2026-05-12)
 
 Initial release.

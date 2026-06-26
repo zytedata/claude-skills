@@ -9,13 +9,12 @@
 </p>
 
 <p align="center">
-	<a href="https://github.com/zytedata/claude-skills/releases/tag/0.2.0">
-		<img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version 0.2.0">
+	<a href="https://github.com/zytedata/claude-skills/releases/tag/0.2.1">
+		<img src="https://img.shields.io/badge/version-0.2.1-blue" alt="Version 0.2.1">
 	</a>
 	<a href="https://github.com/zytedata/claude-skills/blob/main/LICENSE.md">
 		<img src="https://img.shields.io/badge/license-Zyte%20EULA-b02cce" alt="Zyte EULA">
 	</a>
-	
 	<a href="https://github.com/zytedata/claude-skills">
 		<img src="https://img.shields.io/github/stars/zytedata/claude-skills?style=social" alt="GitHub stars">
 	</a>
