@@ -159,6 +159,14 @@ def _get_new_nodes(info: POGenInfo) -> list[BaseStatement]:
 
 
 def add_po_to_file(file_path: Path, info: POGenInfo) -> None:
+    # work around https://github.com/Instagram/LibCST/issues/1458
+    import abc
+    if "__provides__" in abc.ABC.__dict__ and "__providedBy__" not in abc.ABC.__dict__:
+        try:
+            del abc.ABC.__provides__
+        except Exception:
+            pass
+
     codemod_context = CodemodContext()
     imports_transformer = AddImportsVisitor(codemod_context, _get_new_imports(info))
 

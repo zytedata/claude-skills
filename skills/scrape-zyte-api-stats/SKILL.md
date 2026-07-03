@@ -1,6 +1,6 @@
 ---
 name: scrape-zyte-api-stats
-description: Query usage stats for Zyte API requests that have already been sent, including cost, request volume, response times, status codes, filters, grouping, and pagination. Use this skill when the user asks to query historical Zyte API usage, spend, request counts, response times, grouped stats, or filtered stats. Do not use it for dashboard setup, documentation, configuration, or account-help questions.
+description: Query usage stats for Zyte API requests that have already been sent, including cost, request volume, response times, status codes, filters, grouping, and pagination. Use this skill whenever answering the request requires looking up recorded Zyte API usage, spend, request counts, response times, grouped stats, or filtered stats — including projecting future spend or usage when the projection explicitly extrapolates from actual recorded usage (e.g. "based on this month's usage so far, project month-end spend"). Do not use it when the user asks what a spider, job, or workload might, would, or could generate — those are hypothetical estimates with no recorded data to query, even if a spider exists in the project. For a projection to qualify, the user must explicitly reference past or current recorded usage as the basis. Also do not use for dashboard setup, documentation, configuration, or account-help questions.
 argument-hint: "[days|start-date end-date]"
 allowed-tools: Bash
 ---

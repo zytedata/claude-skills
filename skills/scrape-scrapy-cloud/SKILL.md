@@ -76,13 +76,15 @@ for this spider (e.g. 12345). If you don't have a project yet, create one first.
 
 Wait for the user to supply a numeric project ID.
 
-**Detect requirements file**
+**Prepare requirements**
 
-Check which dependency file exists (in order of preference):
+If `requirements.txt` already exists, use it as-is.
 
-```bash
-ls requirements.txt pyproject.toml Pipfile 2>/dev/null | head -1
-```
+Otherwise, look for a dependency specification in the project (any standard file where Python dependencies are declared). If one is found, generate a freeze `requirements.txt` (all packages pinned with `==`) from it by automatic means. If none is found, inspect the project source files to identify third-party packages, write a non-freeze dependency specification file listing them, then generate a freeze `requirements.txt` from that file by automatic means.
+
+In all cases, `scrapinghub.yml` points at `requirements.txt`.
+
+If `requirements.txt` did not exist before, tell the user the exact command used to generate it, and what to run when dependencies change or they wish to upgrade them.
 
 **Specify a Scrapy stack**
 
@@ -92,14 +94,11 @@ Use the Docker Hub API or scrape the tags page to find the most recent stack tag
 * Web page: `https://hub.docker.com/r/scrapinghub/scrapinghub-stack-scrapy/tags`
 
 Tags follow the format `{VERSION}-{YYYYMMDD}` (e.g. `2.14-20260326`). Select the tag with the highest version number and, among equal versions, the latest frozen date. Use that tag as the `stack` value in `scrapinghub.yml`, prefixed with `scrapy:` (e.g. `scrapy:2.14-20260326`).
-If the requirements file is missing or doesn't specify a Scrapy version, use the latest tag overall.
+If the requirements file doesn't specify a Scrapy version, or no stack tag matches the version it specifies, use the latest tag overall.
 
 **Write scrapinghub.yml**
 
-Create the file. Use the detected requirements file, or omit the `requirements` block if none was found.
-If `SCRAPY_CLOUD_ENDPOINT` is set, add an `endpoint:` key to target a non-production environment.
-
-Example with `requirements.txt`:
+Create the file. If `SCRAPY_CLOUD_ENDPOINT` is set, add an `endpoint:` key.
 
 ```yaml
 project: 12345
@@ -111,28 +110,6 @@ requirements:
 
 endpoint: https://app-staging.zyte.com/api/  # include when SCRAPY_CLOUD_ENDPOINT is set
 ```
-
-Example with `pyproject.toml` (Poetry):
-
-```yaml
-project: 12345
-
-stack: scrapy:2.14-20260326  # replace with the latest tag fetched above
-
-requirements:
-  file: pyproject.toml
-```
-
-Example with no requirements file found:
-
-```yaml
-project: 12345
-
-stack: scrapy:2.14-20260326  # replace with the latest tag fetched above
-```
-
-> Note: the requirements file should only list packages not already provided by
-> the stack (e.g. do not include `scrapy` itself).
 
 ### 4. Deploy
 
@@ -167,6 +144,8 @@ Run your spiders at: https://app.zyte.com/p/12345/
 
 Tell the user the deploy succeeded, and include the version, spider count,
 and project link (https://app.zyte.com/p/<project>/).
+
+If the stack's Scrapy version is older than the version in `requirements.txt`, strongly recommend running a test job, and note that if issues arise, stack incompatibility is a possible — not assumed — root cause.
 
 ---
 
@@ -411,3 +390,4 @@ trailing `/api/` path. For example:
 | `Project N does not exist`                   | Wrong project ID or alias                    | Check `scrapinghub.yml` or specify the correct ID       |
 | `Could not find requirements file`           | Wrong path in `scrapinghub.yml`              | Fix the `requirements.file` path and redeploy           |
 | `No module named scrapy` / build errors      | Dependency missing or wrong stack            | Update requirements file and redeploy                   |
+| `sh_scrapy` errors in job logs               | Stack's `scrapinghub-entrypoint-scrapy` may not support the Scrapy version in `requirements.txt` | If a newer version of `scrapinghub-entrypoint-scrapy` exists on PyPI than the one bundled in the stack, add it to the dependency specification, regenerate `requirements.txt`, and redeploy |

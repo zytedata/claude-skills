@@ -1,6 +1,6 @@
 ---
 name: scrape-spec
-description: Explore diverse pages and validate extraction spec — downloads pages, compares variants, optional browser review
+description: Expand a spec created by /scrape-define — download more pages, compare HTML variants, extract values, optional browser review
 argument-hint: "[site-path]"
 allowed-tools: Agent, Skill, AskUserQuestion, Bash, Read, Write
 ---
