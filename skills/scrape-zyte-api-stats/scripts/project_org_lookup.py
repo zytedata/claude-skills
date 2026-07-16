@@ -108,7 +108,7 @@ def fetch_organization_id(project_id: int) -> int:
     apikey = get_api_key()
     request = Request(
         PROJECT_API_URL.format(project_id=project_id),
-        headers={**build_basic_auth_headers(apikey), "User-Agent": f"zytedata/{_meta['repo']}/{_meta['version']} (scrape-zyte-api-stats)"},
+        headers={**build_basic_auth_headers(apikey), "User-Agent": f"zytedata/{_meta['repo']}/{_meta['version']} (scrape-zyte-api-stats; project_org_lookup.py)"},
         method="GET",
     )
     try:

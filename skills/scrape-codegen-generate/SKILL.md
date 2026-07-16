@@ -26,13 +26,17 @@ Plus, taken from the surrounding prompt text (not from the argument string):
 Read `web-poet.md` and `docs-access.md` from `${CLAUDE_SKILL_DIR}/../scrape/references/`.
 
 Read the schema from `{spec_path}` — use the `properties` object inside `schema`.
+Also read `data_type` from `{spec_path}`.
+
+If `data_type` ends with `-list`, set `is_list_type = true`.
 
 Read all Stage 1 analysis files from `{work_path}/codegen-analyze/`:
 ```
-{work_path}/codegen-analyze/detail-1.json
-{work_path}/codegen-analyze/detail-2.json
+{work_path}/codegen-analyze/list-1.json
+{work_path}/codegen-analyze/list-2.json
 ...
 ```
+(or `detail-*.json` for non-list specs)
 
 ### 2. Build consensus across pages
 
@@ -63,7 +67,7 @@ Generate a complete, self-contained Python module following the web-poet referen
 - **Use recommended libraries**: `extruct` for JSON-LD/microdata, `price_parser` for prices, `jmespath` for JSON queries.
 - **Include all imports**: the module must be self-contained and runnable.
 
-Structure:
+**For non-list types** (`is_list_type = false`), standard structure:
 ```python
 from web_poet import WebPage, field
 # ... other imports as needed
@@ -76,6 +80,59 @@ class PageObject(WebPage[dict]):
         # extraction logic
         ...
 ```
+
+**For list types** (`is_list_type = true`), use web-poet's `SelectorExtractor`
+(see the "Processors for nested fields" section of the
+[web-poet fields reference](https://web-poet.readthedocs.io/en/stable/page-objects/fields.md)).
+Define a private `SelectorExtractor` subclass for per-item extraction, then
+iterate over the container selector in the `items` field. Each analysis file has
+`container_selector` and per-field relative selectors.
+
+```python
+import logging
+from web_poet import WebPage, Returns, SelectorExtractor, field, handle_urls
+from {project}.items import Product, ProductListItems
+
+logger = logging.getLogger(__name__)
+
+
+class _ProductExtractor(SelectorExtractor[Product]):
+    @field
+    def title(self) -> str | None:
+        return self.css("h3 a::attr(title)").get()
+
+    @field
+    def price(self) -> str | None:
+        return self.css("p.price_color::text").get()
+
+
+@handle_urls("example.com")
+class ProductListPage(WebPage, Returns[ProductListItems]):
+
+    @field
+    async def items(self) -> list[Product] | None:
+        result = []
+        for el in self.css("article.product_pod"):
+            try:
+                result.append(await _ProductExtractor(el).to_item())
+            except Exception:
+                logger.error("Failed to extract item from %s", self.url, exc_info=True)
+        return result or None
+```
+
+Key rules for list-type code:
+- Define a `_<ItemClass>Extractor` class (e.g. `_ProductExtractor`) that extends
+  `SelectorExtractor[ItemClass]` and has one `@field` method per item field
+- The `items` field must be `async def` because `to_item()` is a coroutine
+- Wrap each `await extractor.to_item()` in `try/except Exception` with a
+  `logger.error(..., exc_info=True)` call — this isolates extraction failures to
+  individual items and logs a full traceback without aborting the whole list
+- Use `return result or None` (never return `[]`)
+- The container selector must be consistent across all analyzed pages; if analyses
+  show different selectors, choose the most general one
+- Field selectors in the extractor are relative to each container element
+  (`self.css(...)` on the extractor operates on `el`, not the full page)
+- Import both `ItemClass` and `WrapperClass` from the project's items module
 
 ### 4. Save and report
 

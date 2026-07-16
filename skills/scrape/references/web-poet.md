@@ -240,6 +240,50 @@ price.amount_float   # 29.99
 price.currency       # '$'
 ```
 
+## Nested item extraction (SelectorExtractor)
+
+Use `SelectorExtractor` to extract nested items from repeating HTML elements.
+It wraps a `parsel.Selector` and exposes `css()` / `xpath()` shortcuts, with
+`@field` support identical to page objects. Full docs:
+https://web-poet.readthedocs.io/en/stable/page-objects/fields.md
+("Processors for nested fields" section).
+
+```python
+import logging
+from web_poet import SelectorExtractor, Returns, field
+
+logger = logging.getLogger(__name__)
+
+
+class _ProductExtractor(SelectorExtractor[Product]):
+    @field
+    def title(self) -> str | None:
+        return self.css("h3 a::attr(title)").get()
+
+    @field
+    def price(self) -> str | None:
+        return self.css("p.price_color::text").get()
+
+
+# In the parent page object:
+@field
+async def items(self) -> list[Product] | None:
+    result = []
+    for el in self.css("article.product_pod"):
+        try:
+            result.append(await _ProductExtractor(el).to_item())
+        except Exception:
+            logger.error("Failed to extract item from %s", self.url, exc_info=True)
+    return result or None
+```
+
+- `SelectorExtractor[ItemClass]` — type parameter tells `to_item()` what to return
+- Pass the container selector element directly: `_ProductExtractor(el)`
+- `to_item()` is async — the parent `@field` must be `async def`
+- Wrap each `await extractor.to_item()` in `try/except Exception` so a broken
+  item doesn't stop processing the rest of the list; log with `exc_info=True`
+  to get a full traceback
+
 ## Input validation
 
 Page objects can define `validate_input` to check the response before extraction:

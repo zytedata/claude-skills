@@ -45,19 +45,60 @@ List page directories in `{spec_path}/pages/` that have corresponding values in
 Derive `site_name` from the spec_path (parent directory name, e.g. `books-toscrape` from `.scrape/books-toscrape/products`).
 Detect the project name from `{project_dir}`.
 
+**List-type detection.** If `data_type` ends with `-list` (e.g., `products-list`):
+- Set `is_list_type = true`
+- Set `base_type` by stripping the `-list` suffix (e.g., `products`)
+- Derive `ItemClass`: singularize `base_type` by dropping a trailing `s` if present
+  (e.g., `products` → `product`), then TitleCase (e.g., `Product`). If the name
+  already looks singular, just TitleCase it.
+- `WrapperClass = {ItemClass}ListItems` (e.g., `ProductListItems`)
+- `PageClass = {ItemClass}ListPage` (e.g., `ProductListPage`)
+- Values are in array format: `{"url": ..., "values": [{...}, ...]}`
+
+Otherwise, set `is_list_type = false` and derive `ClassName` as `TitleCase(data_type) + "Page"`.
+
 ### Step 2: Add item and page object stub
+
+**For non-list types (`is_list_type = false`):**
 
 Check `{project_name}/items.py` for an existing item class matching `data_type`.
 If none exists, write one based on the schema (all fields optional, `| None = None`).
 
-Add a page object stub:
+Add a page object stub in a sub-agent so the parent skill can continue afterward:
 
 ```
-/scrape-add-page-object {project_dir}/{project_name}/pages/{module_name}.py \
-    {ClassName} {domain} web_poet.WebPage {project_name}.items.{ItemClass}
+Agent(description="add page object stub", prompt="/scrape-add-page-object {project_dir}/{project_name}/pages/{module_name}.py {ClassName} {domain} web_poet.WebPage {project_name}.items.{ItemClass}")
 ```
 
 Use `web_poet.BrowserPage` if `html_variant` is `rendered`.
+
+**For list types (`is_list_type = true`):**
+
+The `items.py` needs two classes. Check if they exist; write any that are missing.
+
+1. **Base item class** (`ItemClass`, e.g., `Product`) — a `@dataclass` with fields
+   typed to match the schema. Example:
+   ```python
+   @dataclass
+   class Product:
+       title: str
+       price: str | None = None
+   ```
+
+2. **Wrapper class** (`WrapperClass`, e.g., `ProductListItems`) — a `@dataclass` with a
+   single `items` field typed as `list[ItemClass] | None = None`. Example:
+   ```python
+   @dataclass
+   class ProductListItems:
+       items: list[Product] | None = None
+   ```
+
+Then add the page object stub in a sub-agent, explicitly passing `items` as arg 6
+so the `@field` stub is generated even though all wrapper fields have defaults:
+
+```
+Agent(description="add page object stub", prompt="/scrape-add-page-object {project_dir}/{project_name}/pages/{module_name}.py {PageClass} {domain} web_poet.WebPage {project_name}.items.{WrapperClass} items")
+```
 
 ### Step 3: Convert fixtures
 
@@ -83,6 +124,11 @@ execution. Each agent runs `/scrape-codegen-analyze` with all 4 arguments:
 ```
 
 Skip pages whose HTML file doesn't exist.
+
+For list-type specs, pages are named `list-*` and values contain arrays.
+The `scrape-codegen-analyze` skill detects list pages automatically from
+`meta.json` (where `page_type` is `list`) and produces container-based
+extraction instructions.
 
 ### Step 5: Generate page object code
 

@@ -22,20 +22,22 @@ uv run --no-project "${CLAUDE_SKILL_DIR}/scripts/project_org_lookup.py"
 ```
 
 2. Read the JSON status and follow this branch logic:
-	 - `resolved_project_with_organization`: use the returned `organization_id`
-		 in the stats query. If the payload also includes a `projects` list, the
-		 helper found multiple configured projects that all map to the same
-		 organization and already collapsed them safely.
-	 - `multiple_projects_found`: if the payload includes an `organizations`
-		 list, ask the user to choose among those discovered safe organization
-		 options, not by typing a raw organization id or project id. Each
-		 organization option includes a representative `selection` value that you
-		 can pass back to `--project` when rerunning the helper. If no
-		 `organizations` list is present, fall back to the listed projects.
-	 - `no_project_configured` or `organization_lookup_failed`: tell the user to
-		 use the `scrape-zyte-login` skill to configure a project and credentials, then retry the
-		 query. Do not offer a raw organization id or raw project id as a fallback
-		 in these branches.
+   - `resolved_project_with_organization`: use the returned `organization_id`
+     in the stats query. If the payload also includes a `projects` list, the
+     helper found multiple configured projects that all map to the same
+     organization and already collapsed them safely.
+   - `multiple_projects_found`: if the payload includes an `organizations`
+     list, ask the user to choose among those discovered safe organization
+     options, not project names and not by typing a raw organization id or
+     raw project id. Present each option by `organization_id` exactly as
+     returned, and keep the corresponding `selection` value privately for
+     rerunning the helper with `--project`. If no `organizations` list is
+     present, fall back to the listed projects.
+   - `no_project_configured` or `organization_lookup_failed`: tell the user to
+     use `/scrape-zyte-login` to configure a project and credentials, then retry
+     the query. Name `/scrape-zyte-login` explicitly in the final user-facing
+     message. Do not offer a raw organization id or raw project id as a fallback
+     in these branches.
 
 The project lookup helper reads project IDs from the standard `shub` config
 (`scrapinghub.yml` in the project root, `~/.scrapinghub.yml`, or environment

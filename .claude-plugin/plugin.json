@@ -1,7 +1,7 @@
 {
   "name": "zyte-web-data",
   "description": "Zyte Web Data for Claude Code",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "homepage": "https://github.com/zytedata/claude-skills",
   "repository": "https://github.com/zytedata/claude-skills"
 }

@@ -13,7 +13,9 @@ The output is a draft spec folder with an approved schema and values (no stored 
 
 **Hard constraints — never violate these:**
 - You MUST NOT fetch, read, grep, or parse any HTML file yourself. Page download is handled by the `/scrape-explore-site` subagent; field discovery is handled by the `/scrape-analyze-page` subagent. The main agent only orchestrates and consumes their outputs.
+- This includes `raw.html`, `rendered.html`, `*.cleaned.html`, and any other saved page HTML. You may check whether a file exists, but you MUST NOT open it, print it, grep it, parse it, or run extraction scripts against it from the main agent.
 - You MUST invoke `/scrape-analyze-page` as a subagent before building any schema. Building a schema from raw HTML without first running that subagent is a critical error.
+- While waiting for `/scrape-analyze-page`, do NOT read HTML files, run `clean_html.py`, `extract_metadata.py`, or any inline parser code, even if the agent response suggests continuing unrelated work. Wait for the subagent to complete, then read only its saved JSON output.
 
 
 ## Parse intent
@@ -71,14 +73,17 @@ If the site is blocked, suggest Zyte. Only invoke `/scrape-zyte-login` if the us
 
 ## Step 3: Analyze the detail page
 
-Use `rendered.html` for analysis. If it doesn't exist, fall back to `raw.html`.
+Use `rendered.html` for analysis. If it doesn't exist, fall back to `raw.html`. Choose between them with a file-existence check only; do not read, grep, print, clean, or parse either HTML file in the main agent.
 
-Run a subagent with the analysis skill:
+Run a subagent with the analysis skill. The subagent prompt MUST start with `/scrape-analyze-page`, and the subagent must invoke that skill; it is not acceptable for the main agent to run `clean_html.py`, `extract_metadata.py`, `sed`, `grep`, `cat`, or inline Python/lxml parsing as a substitute.
+
 ```
 Agent(description="analyze detail-1 rendered", prompt="/scrape-analyze-page Extract data from .scrape/.work/{site_name}/explore/pages/detail-1/rendered.html and save it into .scrape/.work/{site_name}/analyze-page/detail-1.rendered.json")
 ```
 
-Read the analysis result from `.scrape/.work/{site_name}/analyze-page/detail-1.rendered.json`.
+After starting the analysis subagent, wait for it to finish. If the expected JSON file is not present, retry the `/scrape-analyze-page` subagent or report a blocker. Do NOT create the analysis JSON yourself from HTML.
+
+Read the analysis result from `.scrape/.work/{site_name}/analyze-page/detail-1.rendered.json`. Do not inspect the downloaded page HTML or any cleaned HTML after the analysis subagent returns; the JSON result is the only allowed field-discovery input for the main agent.
 
 ## Step 4: Build schema
 

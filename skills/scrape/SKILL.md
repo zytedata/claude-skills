@@ -1,6 +1,6 @@
 ---
 name: scrape
-description: End-to-end web scraping workflow — from URL to working spider with web-poet page objects. Use this for full-site or multiple-page crawls, not single-page extractions.
+description: End-to-end web scraping workflow — from URL to working spider with web-poet page objects. Use this for full-site or multiple-page crawls that create a new scraping workflow. Do not use for fixing, debugging, or modifying an existing spider.
 argument-hint: "[url] [what to extract]"
 allowed-tools: Skill, Agent, Bash, Read, Write, TaskCreate, TaskUpdate, TaskList, TaskGet
 ---
@@ -61,14 +61,24 @@ Derive a project name from the domain (e.g., `books_toscrape_com`).
 
 ### Generate page objects (per data type)
 
-The spec contains separate data type folders (e.g., `product`, `navigation`).
-Call codegen once per data type:
+After `scrape-spec` returns, re-read `{site_path}/spec.json` to get the final
+`data_types` list — `scrape-spec` may have replaced `{data_type}` with
+`{data_type}-list` when all requested fields were found on list pages.
+
+Identify the primary data type: the first entry in `data_types` that is not
+`"navigation"`. If it ends with `-list` (e.g., `"products-list"`), the site
+will use list-page extraction. Otherwise it uses detail-page extraction (the
+default). Navigation is always present.
+
+Call codegen once per data type in `data_types`:
 
 ```
-/scrape-codegen .scrape/{site_name}/product ./{project_name}
+/scrape-codegen .scrape/{site_name}/{primary_type} ./{project_name}
 /scrape-codegen .scrape/{site_name}/navigation ./{project_name}
 ```
 
+Where `{primary_type}` is whatever `scrape-spec` wrote — `products-list` for
+the list path, `products` (or the site's data type name) for the detail path.
 Each call adds its own item class, page object, and fixtures to the project.
 
 ## Spider generation
@@ -80,7 +90,15 @@ After codegen, determine the PO class import paths from the generated files, the
 ```
 
 Also provide start URLs in the prompt (the site URL from spec.json).
-Generates a spider that wires navigation and item extraction POs together.
+
+When the primary data type ends with `-list`, the generated item PO class name
+ends with `ListPage` (e.g., `ProductListPage`). `scrape-create-spider` detects
+this suffix and automatically generates a list-extraction spider (items yielded
+directly from `parse()`, no `parse_item` callback).
+
+When the primary data type is a plain detail type, the spider uses the standard
+detail-extraction pattern (navigation in `parse()`, items in `parse_item()`).
+
 Tests with a limited crawl.
 
 ## Report
@@ -97,3 +115,8 @@ Cloud](https://docs.zyte.com/scrapy-cloud/get-started.md) if they wish. It's
 useful for scheduled or long-running crawls, to keep a job history with results
 and logs, for job monitoring (with an API that an LLM can use), and more. There
 is also a [free tier](https://docs.zyte.com/scrapy-cloud/pricing.md).
+
+If they deploy and run it there (via `/scrape-scrapy-cloud`), the run will by
+default wait for the job to finish and validate its results (errors, field
+coverage, and whether items match the request) before reporting back — so
+expect it to take as long as the crawl does unless they opt out.

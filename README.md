@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-	<a href="https://github.com/zytedata/claude-skills/releases/tag/0.2.2">
-		<img src="https://img.shields.io/badge/version-0.2.2-blue" alt="Version 0.2.2">
+	<a href="https://github.com/zytedata/claude-skills/releases/tag/0.2.3">
+		<img src="https://img.shields.io/badge/version-0.2.3-blue" alt="Version 0.2.3">
 	</a>
 	<a href="https://github.com/zytedata/claude-skills/blob/main/LICENSE.md">
 		<img src="https://img.shields.io/badge/license-Zyte%20EULA-b02cce" alt="Zyte EULA">

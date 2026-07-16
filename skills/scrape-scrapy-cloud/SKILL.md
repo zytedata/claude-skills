@@ -80,7 +80,7 @@ Wait for the user to supply a numeric project ID.
 
 If `requirements.txt` already exists, use it as-is.
 
-Otherwise, look for a dependency specification in the project (any standard file where Python dependencies are declared). If one is found, generate a freeze `requirements.txt` (all packages pinned with `==`) from it by automatic means. If none is found, inspect the project source files to identify third-party packages, write a non-freeze dependency specification file listing them, then generate a freeze `requirements.txt` from that file by automatic means.
+Otherwise, look for a dependency specification (any standard file declaring Python dependencies). If one exists, generate a freeze `requirements.txt` (all packages pinned with `==`) from it by automatic means. If none exists, identify the third-party packages from the project source, write them to a non-freeze dependency **file**, then generate the freeze `requirements.txt` from that **file** by automatic means.
 
 In all cases, `scrapinghub.yml` points at `requirements.txt`.
 
@@ -216,6 +216,127 @@ uvx shub schedule myspider \
 
 ---
 
+## Waiting for a job to finish
+
+After scheduling a job, wait for it to reach a terminal state so you can
+validate its results (see the next section). Use the bundled helper — it polls
+the Jobs API with backoff so you don't have to poll by hand:
+
+```bash
+uv run ${CLAUDE_SKILL_DIR}/scripts/wait_for_job.py PROJECT/SPIDER/JOB
+```
+
+Optional flags: `--poll-interval SECONDS` (initial gap, default 10, backs off
+to 60) and `--max-wait SECONDS` (give up after this long, default 1200).
+
+It blocks until the job reaches a terminal state (or `--max-wait` is hit), then
+prints exactly one machine-readable line to stdout:
+
+- `JOB_FINISHED {...job json...}` — the job reached a terminal state (exit 0).
+  Parse the JSON for `state`, `close_reason`, `errors_count`, `items_scraped`,
+  etc., then proceed to validation.
+- `JOB_TIMEOUT {...last known job json...}` — `--max-wait` elapsed while the
+  job was still running (exit 1). Tell the user the job is still running and
+  offer to keep waiting (re-run with a larger `--max-wait`) or check back later.
+
+Progress lines go to stderr and can be ignored.
+
+## Validating job results
+
+**Do this by default** after running a job — deploy/schedule is not "done"
+until the results look right. **Skip it only if the user opted out** (phrases
+like "just schedule it", "don't wait for it", "no need to check the results"):
+in that case, report the job link and stop.
+
+Work through these checks against the finished job:
+
+### 1. Errors and close reason
+
+From the `JOB_FINISHED` summary, `close_reason` should be `"finished"`.
+Anything else — `failed`, `cancelled`, or an unexpected `closespider_*`
+reason — is a flag worth investigating. Treat `errors_count` as a signal, not
+proof: a `0` count does not guarantee a clean run if the log level suppressed
+errors (see step 3).
+
+### 2. Inspect logs locally
+
+Download the full log once and grep/`jq` it locally — far faster than
+paginating the HTTP API line by line. Logs come back as JSON Lines by default:
+
+```bash
+uv run ${CLAUDE_SKILL_DIR}/scripts/scrapy_cloud_api.py GET \
+  "${SCRAPY_CLOUD_STORAGE_ENDPOINT:-https://storage.zyte.com/}logs/PROJECT/SPIDER/JOB" > job.log.jl
+# ERROR (40) and CRITICAL (50) entries:
+jq -c 'select(.level >= 40)' job.log.jl
+```
+
+Each entry is `{"time": <unix-ms>, "level": <int>, "message": <str>}`; see the
+log-level table under "Viewing items and logs". For pagination/format options,
+see the logs API docs linked there.
+
+If the project uses Zyte API (via scrapy-zyte-api), the Scrapy stats dumped at
+close include `scrapy-zyte-api/*` counters — success/error ratios, `429`s,
+`error_types/*`, bans. These often explain a bad close reason or low coverage,
+and are easy to misread. For what each counter means, see
+https://scrapy-zyte-api.readthedocs.io/en/latest/reference/stats.md
+
+### 3. Log level
+
+No DEBUG messages in the logs means `LOG_LEVEL` is set above DEBUG. When a job
+has issues you can't diagnose from the available logs, rerun it with
+`LOG_LEVEL=DEBUG`.
+
+`LOG_LEVEL` can be set in code or in Scrapy Cloud's project/spider settings. If
+setting it in code has no effect, cloud settings are overriding it — there's no
+public API to read or change them, so ask the user to fix it manually.
+
+### 4. Field coverage
+
+Use the item stats endpoint (see "Item stats" below) to get per-field
+population counts without downloading every item. Compare `counts[field]`
+against `totals.input_values` (total item count). Determine which fields were
+expected:
+
+- If this job is part of the `/scrape` workflow, the expected fields are in
+  `.scrape/{site}/{data-type}/spec.json` (see
+  `${CLAUDE_SKILL_DIR}/../scrape/references/extraction-spec.md`).
+- Otherwise, read the item / page-object class in the deployed project.
+
+Flag any expected field at 0% coverage.
+
+For fields between 0% and 100% coverage, download a few items where the field is
+missing (see "Downloading items" below) and judge whether it's legitimately
+absent or an extraction bug.
+
+### 5. Spot-check that items match the request
+
+Download a small sample and read it (see "Downloading items" below):
+
+```bash
+uv run ${CLAUDE_SKILL_DIR}/scripts/scrapy_cloud_api.py GET \
+  "${SCRAPY_CLOUD_STORAGE_ENDPOINT:-https://storage.zyte.com/}items/PROJECT/SPIDER/JOB" -q count=5
+```
+
+Judge whether the sampled items match what the user actually asked for — the
+right categories, filters, or product types (from the spec's schema/examples
+and start URLs, or from the conversation). This is a judgment call, not a
+scripted assertion.
+
+### 6. Report
+
+Summarize: job link, `close_reason`, error count, a short field-coverage table,
+and the sample check verdict.
+
+### On a finding
+
+If any check fails (errors, low coverage, wrong-category items), diagnose the
+likely cause, fix the project code, redeploy (`uvx shub deploy`), reschedule,
+and re-validate. Cap this at 3 total attempts — matching the local validation
+loop in `scrape-create-spider`. If it still looks wrong after 3, stop and
+report what remains broken rather than looping further.
+
+---
+
 ## Managing jobs
 
 Use the Scrapy Cloud Jobs HTTP API for listing and stopping jobs.
@@ -233,6 +354,11 @@ uv run ${CLAUDE_SKILL_DIR}/scripts/scrapy_cloud_api.py HTTP_METHOD API_URL [-q Q
 ```
 
 With arbitrary query parameters (`-q`) and body parameters (`-b`) as needed per endpoint. See the script's help message for details.
+
+**Output format**: the script prints the HTTP status code on the first line,
+then the response body on the remaining lines. Use the status line to detect
+errors (e.g. `401`/`403` auth failures); when you only need the body, ignore
+the first line. The response bodies shown below omit the leading status line.
 
 ### List jobs
 
@@ -297,6 +423,27 @@ Response fields:
 | `totals.input_bytes`| Total size of all items in bytes.          |
 | `totals.input_values` | Total number of items.                   |
 
+### Downloading items (HTTP API)
+
+To read the items themselves, fetch them from the storage API through the
+wrapper script (never `curl` — the wrapper keeps credentials out of the
+trajectory). The default response format is JSON Lines, one item per line:
+
+```bash
+# All items
+uv run ${CLAUDE_SKILL_DIR}/scripts/scrapy_cloud_api.py GET "${SCRAPY_CLOUD_STORAGE_ENDPOINT:-https://storage.zyte.com/}items/PROJECT_ID/SPIDER_ID/JOB_ID"
+
+# A bounded sample (recommended for spot-checks)
+uv run ${CLAUDE_SKILL_DIR}/scripts/scrapy_cloud_api.py GET "${SCRAPY_CLOUD_STORAGE_ENDPOINT:-https://storage.zyte.com/}items/PROJECT_ID/SPIDER_ID/JOB_ID" -q count=5
+
+# Specific items by index (repeat -q index=N for each)
+uv run ${CLAUDE_SKILL_DIR}/scripts/scrapy_cloud_api.py GET "${SCRAPY_CLOUD_STORAGE_ENDPOINT:-https://storage.zyte.com/}items/PROJECT_ID/SPIDER_ID/JOB_ID" -q index=0 -q index=1
+```
+
+Redirect to a file and inspect locally with `jq`/`grep` for anything beyond a
+quick look. For pagination (`start`, `startafter`), field filtering, gzip, and
+other formats (`-q format=json`), see the items API docs linked below.
+
 ### Log page
 
 ```
@@ -325,13 +472,17 @@ Logs returned by the HTTP API include a numeric `level` field:
 
 Each log entry is a JSON object with fields: `time` (Unix ms), `level`, and `message`.
 
-### Advanced programmatic access
+### Reference docs
 
-For bulk downloads, pagination, field filtering, and format options (JSON, JSON
-Lines), refer to the HTTP API documentation:
+The Scrapy Cloud docs are available as Markdown (swap `.html` → `.md`). Prefer
+fetching these over guessing at API mechanics — they cover the exhaustive set
+of parameters, formats, and fields:
 
-- **Items**: https://docs.zyte.com/scrapy-cloud/usage/reference/http/items.md
-- **Logs**: https://docs.zyte.com/scrapy-cloud/usage/reference/http/logs.md
+- **Get started (entry point)**: https://docs.zyte.com/scrapy-cloud/get-started.md
+- **Items API**: https://docs.zyte.com/scrapy-cloud/usage/reference/http/items.md
+- **Logs API**: https://docs.zyte.com/scrapy-cloud/usage/reference/http/logs.md
+- **Jobs API** (fields, filters, scheduling): https://docs.zyte.com/scrapy-cloud/usage/reference/http/jobs.md
+- **Common HTTP params** (formats, pagination, gzip, field filtering): https://docs.zyte.com/scrapy-cloud/usage/reference/http/index.md
 
 ---
 
@@ -347,6 +498,8 @@ Invoke this skill when the user asks to:
 - List, filter, or inspect jobs
 - Stop a running job
 - View scraped items or logs for a job
+- Wait for a running job to finish
+- Validate or check the results of a job (errors, field coverage, item quality)
 
 Example phrases that should trigger this skill:
 
@@ -362,6 +515,8 @@ Example phrases that should trigger this skill:
 - "Stop job 123/1/5"
 - "Show items from job 123/1/5"
 - "Show logs for job 123/1/5"
+- "Run my spider on Scrapy Cloud and check the results"
+- "Wait for job 123/1/5 and validate the output"
 
 ## Environment Variables
 
@@ -391,3 +546,5 @@ trailing `/api/` path. For example:
 | `Could not find requirements file`           | Wrong path in `scrapinghub.yml`              | Fix the `requirements.file` path and redeploy           |
 | `No module named scrapy` / build errors      | Dependency missing or wrong stack            | Update requirements file and redeploy                   |
 | `sh_scrapy` errors in job logs               | Stack's `scrapinghub-entrypoint-scrapy` may not support the Scrapy version in `requirements.txt` | If a newer version of `scrapinghub-entrypoint-scrapy` exists on PyPI than the one bundled in the stack, add it to the dependency specification, regenerate `requirements.txt`, and redeploy |
+| `close_reason` is not `finished`             | Job failed, was cancelled, or hit a `closespider_*` limit | Read the logs (filter `level >= 40`); fix the root cause and reschedule. See "Validating job results" |
+| A field has 0% or unexpectedly low coverage  | Broken/incorrect selector in the page object | Inspect the item stats and a sample of items, fix the page object, redeploy, and re-run. See "Validating job results" |

@@ -44,9 +44,7 @@ List page subdirectories in `{spec_path}/pages/` (each subdirectory is a page). 
 
 ### 2. Create temp directory
 
-```bash
-REVIEW_DIR=$(mktemp -d /tmp/scrape-review-XXXXXX)
-```
+Create a temporary directory named `scrape-review-XXXXXX` (where `XXXXXX` is a random suffix). Keep track of the resulting path as `{review_dir}` and use it in subsequent steps.
 
 ### 3. Copy static assets
 
@@ -59,17 +57,17 @@ Use `${CLAUDE_SKILL_DIR}/assets/` as the source path.
 
 ### 4. Copy saved HTML pages
 
-For each page directory in `{spec_path}/pages/`, copy the chosen variant's HTML to `${REVIEW_DIR}/pages/{page_id}.html`:
+For each page directory in `{spec_path}/pages/`, copy the chosen variant's HTML to `{review_dir}/pages/{page_id}.html`:
 
 ```bash
-cp {spec_path}/pages/{page_id}/{html_variant}.html ${REVIEW_DIR}/pages/{page_id}.html
+cp {spec_path}/pages/{page_id}/{html_variant}.html {review_dir}/pages/{page_id}.html
 ```
 
 This flattens the directory structure for the review page's iframes.
 
 ### 5. Generate data.js
 
-Build and write `${REVIEW_DIR}/data.js` with all the data the review page needs.
+Build and write `{review_dir}/data.js` with all the data the review page needs.
 Use the literal placeholder `AGENT_PORT_PLACEHOLDER` for the port — the server replaces it
 after binding. If `changes` was passed (the optional 5th argument), include `REVIEW_CHANGES` so the page shows what the agent did:
 
@@ -103,10 +101,12 @@ const REVIEW_DATA = {
 Run exactly the command below and wait for it to finish before doing anything else:
 
 ```bash
-FEEDBACK_FILE="${REVIEW_DIR}/feedback.txt"
-uv run "${CLAUDE_SKILL_DIR}/scripts/feedback-server.py" "${REVIEW_DIR}" "${FEEDBACK_FILE}"
+FEEDBACK_FILE="{review_dir}/feedback.txt"
+uv run "${CLAUDE_SKILL_DIR}/scripts/feedback-server.py" "{review_dir}" "${FEEDBACK_FILE}"
 cat "${FEEDBACK_FILE}"
 ```
+
+Report `{review_dir}` to the user in the message before running this command, in case they need to reopen it.
 
 The script opens the review page in the browser, waits for the user
 to submit feedback, and exits by itself. Your only job is to wait for the command to finish,

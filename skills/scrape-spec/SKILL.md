@@ -28,13 +28,13 @@ Derive `site_name` from `site_path` (last component, e.g. `books-toscrape`).
 
 ## Step 2: Explore the site
 
-Stage 1 doesn't store pages — only schema and values. Stage 2 downloads all pages fresh using `/scrape-explore-site` in a subagent.
+Stage 1 doesn't store pages — only schema and values. Stage 2 downloads a small fresh sample using `/scrape-explore-site` in a subagent.
 
 ```
-Agent(description="explore-site", prompt="Run /scrape-explore-site {url} .scrape/.work/{site_name}/explore 3 2")
+Agent(description="explore-site", prompt="Run /scrape-explore-site {url} .scrape/.work/{site_name}/explore 2 2")
 ```
 
-This downloads the start page + 3 detail pages + 2 list pages, classifies links, and generates navigation values. All output goes to `.scrape/.work/{site_name}/explore/`.
+This downloads the start page + up to 2 detail pages + up to 2 list pages, classifies links, and generates navigation values. All output goes to `.scrape/.work/{site_name}/explore/`.
 
 If the subagent reports that the site is blocked, invoke `/scrape-zyte-login`. After it returns, **re-run** the `scrape-explore-site` subagent above. Only proceed once exploration succeeds.
 
@@ -78,27 +78,73 @@ Read both output files and analyze the link groups. Determine which HTML variant
 
 Store the result as `nav_html_variant` for use in Step 6.
 
-## Step 4: Analyze detail pages (both variants)
+## Step 4: Analyze detail sample and list pages in parallel
 
-Analyze **all** detail pages (including the one from Stage 1) with **both** HTML variants. Launch one Agent per (page x variant) combination — all in a **single message** for parallel execution.
+First analyze a bounded sample of detail pages with both HTML variants. Use the first detail page that has both `raw.html` and `rendered.html` when list pages are present; otherwise use the first 1-2 detail pages. This means the detail-page variant comparison uses at most 1 page when list pages are also being analyzed, and at most 2 pages when no list pages are available. Do not launch more than 4 detail-page analysis agents for the variant comparison. This keeps the workflow responsive while still testing whether raw or rendered can extract the approved schema fields.
+
+Also analyze all list pages from `{site_path}/navigation/pages/` with the raw variant using the data type schema. Launch the detail sample agents **plus** one Agent per list page in a **single message** for parallel execution. Keep the combined launch at 5 Agents or fewer to avoid provider thread limits; if there are list pages, prefer `detail-1` raw/rendered plus the list-page agents over analyzing a second detail page. Issue all the Agent calls in one response with no tool calls in between — do not wait for any result before launching the rest.
+
+Before launching the agents, create the output directories:
+```bash
+mkdir -p .scrape/.work/{site_name}/analyze-page
+mkdir -p {site_path}/{data_type}-list/values
+```
 
 ```
 Agent(description="analyze detail-1 raw", prompt="/scrape-analyze-page Extract data from {site_path}/{data_type}/pages/detail-1/raw.html using the schema in {site_path}/{data_type}/spec.json and save it into .scrape/.work/{site_name}/analyze-page/detail-1.raw.json ")
 Agent(description="analyze detail-1 rendered", prompt="Run /scrape-analyze-page {site_path}/{data_type}/pages/detail-1/rendered.html using the schema in {site_path}/{data_type}/spec.json and save it into .scrape/.work/{site_name}/analyze-page/detail-1.rendered.json")
+Agent(description="analyze list-1", prompt="/scrape-analyze-page --list-mode Extract all {data_type} items from {site_path}/navigation/pages/list-1/raw.html using the schema in {site_path}/{data_type}/spec.json and save it into {site_path}/{data_type}-list/values/list-1.json")
+Agent(description="analyze list-2", prompt="/scrape-analyze-page --list-mode Extract all {data_type} items from {site_path}/navigation/pages/list-2/raw.html using the schema in {site_path}/{data_type}/spec.json and save it into {site_path}/{data_type}-list/values/list-2.json")
+... (all list pages in the same message)
+
+If there are no list pages, add the second detail-page pair instead:
+
 Agent(description="analyze detail-2 raw", prompt="Run /scrape-analyze-page {site_path}/{data_type}/pages/detail-2/raw.html using the schema in {site_path}/{data_type}/spec.json and save it into .scrape/.work/{site_name}/analyze-page/detail-2.raw.json")
-... (all in one message)
+Agent(description="analyze detail-2 rendered", prompt="Run /scrape-analyze-page {site_path}/{data_type}/pages/detail-2/rendered.html using the schema in {site_path}/{data_type}/spec.json and save it into .scrape/.work/{site_name}/analyze-page/detail-2.rendered.json")
 ```
 
-Skip variants whose HTML files don't exist. The schema_path gives analyze-page the approved field names, descriptions, and examples — so it extracts with the correct names and value formats.
+Skip variants whose HTML files don't exist. If there are no list pages in `{site_path}/navigation/pages/`, skip the list-page agents and the `mkdir` for `{data_type}-list/values`. The schema_path gives analyze-page the approved field names, descriptions, and examples — so it extracts with the correct names and value formats. After Step 5 chooses the variant, do not launch extra detail-page analyses. Do not wait for every list-page agent before continuing: once the bounded detail sample is complete and at least one list-page values file is available, proceed to Step 4.5 using the completed list outputs so slow optional list analyses do not block finalization.
+
+## Step 4.5: Decide whether to create a list-page data type
+
+This step runs only if list pages were found and analyzed in Step 4.
+
+Read the completed `{site_path}/{data_type}-list/values/list-*.json` files. For each completed file, check whether every `source: "requested"` field from the schema appears as a key in at least one item in the `values` array. If no list values file has completed yet, set `list_spec_created = false` and proceed with detail-page extraction rather than waiting.
+
+**If ALL requested fields are found in EVERY completed list-page values file:**
+
+Set `list_spec_created = true`.
+
+1. Write `{site_path}/{data_type}-list/spec.json`:
+   ```json
+   {
+     "url": "{url}",
+     "data_type": "{data_type}-list",
+     "html_variant": "raw",
+     "schema": {<same schema object as in {site_path}/{data_type}/spec.json>}
+   }
+   ```
+
+2. Copy list pages into the new data type:
+   ```bash
+   mkdir -p {site_path}/{data_type}-list/pages
+   for d in {site_path}/navigation/pages/list-*; do
+     [ -d "$d" ] && cp -r "$d" {site_path}/{data_type}-list/pages/
+   done
+   ```
+
+**Otherwise:** set `list_spec_created = false`. Proceed with detail-page extraction as normal — the `{data_type}-list/values/` directory may remain but will be ignored.
 
 ## Step 5: Choose HTML variant
 
-Compare raw vs rendered results across all detail pages. Read all analysis files from `.scrape/.work/{site_name}/analyze-page/`.
+Compare raw vs rendered results across the bounded sample from `.scrape/.work/{site_name}/analyze-page/`.
 
 For each page, compare `{page_id}.raw.json` and `{page_id}.rendered.json`:
 - Which variant found more of the schema fields?
 - Which fields are only in one variant?
 - Do values differ between variants for the same field?
+
+Use a single small Python script for this comparison. The script should load `{site_path}/{data_type}/spec.json`, enumerate `.scrape/.work/{site_name}/analyze-page/*.json`, compare only schema field coverage and values, print a concise summary, and recommend `raw` unless rendered consistently finds requested schema fields that raw misses.
 
 **Raw is preferred by default** — it's faster, cheaper, and more reliable. Only use rendered if it finds schema fields that raw consistently misses, or if raw HTML is essentially empty (SPA site).
 
@@ -125,11 +171,13 @@ providing details:
 
 In this case use the variant that the user selects.
 
-If the variant changes from what Stage 1 used, update `{site_path}/{data_type}/spec.json` with the new `html_variant`.
+If both variants find all approved schema fields in the bounded sample, choose `raw` immediately. If the variant changes from what Stage 1 used, update `{site_path}/{data_type}/spec.json` with the new `html_variant`. Once the variant is chosen, continue directly to Step 6; do not start more analysis agents.
 
-## Step 6: Extract values
+## Step 6: Extract values (skip if list_spec_created)
 
-Use `extract_values.py` to build values from analysis files, filtered by the schema:
+If `list_spec_created` is true, skip this step — values were already written to `{data_type}-list/values/` in Step 4.
+
+Otherwise, use `extract_values.py` to build values from analysis files, filtered by the schema:
 
 ```bash
 uv run ${CLAUDE_SKILL_DIR}/../scrape-explore-site/scripts/extract_values.py \
@@ -139,7 +187,7 @@ uv run ${CLAUDE_SKILL_DIR}/../scrape-explore-site/scripts/extract_values.py \
   -O {site_path}/{data_type}/values/
 ```
 
-This overwrites any existing values files (including the one from Stage 1) with fresh extractions from all detail pages. No `--renames` needed — Stage 2's analyze-page receives the full schema (names + descriptions + examples), so it extracts with the correct field names directly.
+This overwrites any existing values files (including the one from Stage 1) with fresh extractions from the analyzed detail-page sample. No `--renames` needed — Stage 2's analyze-page receives the full schema (names + descriptions + examples), so it extracts with the correct field names directly.
 
 ### Navigation
 
@@ -149,7 +197,9 @@ Navigation values were already copied from explore-site output in Step 2.
 
 ## Step 7: Optional browser review
 
-Tell the user the extraction stats first ("Extracted values for {N} detail pages and {M} navigation pages."), then ask via `AskUserQuestion`:
+Tell the user the extraction stats first ("Extracted values for {N} detail pages and {M} navigation pages."), then ask via `AskUserQuestion` whether they want a browser review.
+
+If the environment cannot ask follow-up questions, skip browser review and continue.
 
 - **question**: "Open a browser review of the extracted values?"
 - **header**: "Browser review"
@@ -191,11 +241,25 @@ Loop steps 7-8 until the user approves or skips review.
 
 ## Step 9: Finalize
 
-Update `{site_path}/{data_type}/spec.json` with any schema changes from the review.
+Update `{site_path}/{data_type}/spec.json` with any schema changes from the review (only relevant when `list_spec_created` is false, since detail pages were used).
 
-Update `{site_path}/spec.json` — ensure `data_types` includes both the primary data type and "navigation".
+Update `{site_path}/spec.json` — set `data_types` as follows:
+- If `list_spec_created` is true: `["{data_type}-list", "navigation"]` — omit `"{data_type}"` since detail-page extraction is not needed.
+- Otherwise: `["{data_type}", "navigation"]`
 
 Report:
+
+If `list_spec_created` is true:
+```
+Spec finalized at {site_path}/:
+  {data_type}-list: {N} list pages, {F} fields, {K} items extracted
+  navigation: {M} pages
+
+All requested fields found on list pages — skipping detail-page extraction.
+Ready for codegen: /scrape-codegen {site_path}/{data_type}-list ./{project_dir}
+```
+
+Otherwise:
 ```
 Spec finalized at {site_path}/:
   {data_type}: {N} detail pages, {F} fields

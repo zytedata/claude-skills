@@ -1,11 +1,14 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#   "shub>=2.15.0",
+#   "shub>=2.18.1",
 # ]
 # ///
 """Wrapper to interact with the Scrapy Cloud API while avoiding leaking API keys.
-Prints the API response to stdout.
+
+Prints the HTTP response status code on the first line, followed by the
+response body on the remaining lines. Callers that only need the body should
+skip the first line (e.g. `tail -n +2`).
 
 Usage:
     uv run scrapy_cloud_api.py HTTP_METHOD API_URL [-q QUERY_ARG=VALUE]... [-b BODY_ARG=VALUE]...
@@ -19,45 +22,23 @@ Examples:
 
 import argparse
 import json
-import os
-import sys
-from base64 import b64encode
-from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 
+from auth import build_headers
 
-_meta_dir = Path(__file__).parent.parent.parent / "scrape"
-_meta = json.loads((_meta_dir / "meta.json").read_text())
-
-APIKEY_ENV_VAR = "SHUB_APIKEY"
 TIMEOUT_SECONDS = 10
-
-
-def get_api_key() -> str:
-    apikey = os.getenv(APIKEY_ENV_VAR)
-    if not apikey:
-        import shub.config
-
-        config = shub.config.load_shub_config()
-        apikey = config.apikeys.get("default")
-
-        if not apikey:
-            print(
-                "Scrapy Cloud API key not found."
-                " Run 'shub login' or set the SHUB_APIKEY environment variable, then try again."
-                " If you don't have a Zyte account, sign up at https://app.zyte.com."
-                " See https://shub.readthedocs.io/en/latest/configuration.md"
-            )
-            sys.exit(1)
-
-    return apikey
 
 
 def make_api_request(
     method: str, url: str, headers: dict, body: dict | None = None
-) -> str:
+) -> tuple[int, str]:
+    """Return the ``(status_code, body)`` of the API response.
+
+    HTTP error responses are returned like any other response rather than
+    raised, so the caller can inspect the status code and body uniformly.
+    """
     data = None
     if body:
         data = json.dumps(body).encode("utf-8")
@@ -66,9 +47,9 @@ def make_api_request(
     req = Request(url, data=data, headers=headers, method=method)
     try:
         with urlopen(req, timeout=TIMEOUT_SECONDS) as response:
-            return response.read().decode("utf-8")
+            return response.status, response.read().decode("utf-8")
     except HTTPError as exc:
-        return exc.read().decode("utf-8", errors="replace")
+        return exc.code, exc.read().decode("utf-8", errors="replace")
 
 
 if __name__ == "__main__":
@@ -115,14 +96,9 @@ if __name__ == "__main__":
         full_url += "?" + urlencode(query_params)
 
     # make the API request using urllib, passing the API key in the Authorization header
-    apikey = get_api_key()
-    auth_token = b64encode(f"{apikey}:".encode("utf-8")).decode("ascii")
-    headers = {
-        "Authorization": f"Basic {auth_token}",
-        "Accept": "application/json",
-        "User-Agent": f"zytedata/{_meta['repo']}/{_meta['version']} (scrape-scrapy-cloud)",
-    }
-    response = make_api_request(
+    headers = build_headers("scrapy_cloud_api.py")
+    status, response = make_api_request(
         args.method, full_url, headers, body_params if body_params else None
     )
+    print(status)
     print(response)

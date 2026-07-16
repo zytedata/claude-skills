@@ -145,8 +145,11 @@ def main():
             continue
 
         values_data = json.loads(values_path.read_text())
-        # The values file has {"url": "...", "values": {...}}
+        # The values file has {"url": "...", "values": {...}} for detail pages
+        # or {"url": "...", "values": [...]} for list pages
         values = values_data.get("values", values_data)
+        if isinstance(values, list):
+            values = {"items": values}
 
         fixture_dir = fixture_base / f"test-{i}"
         written = create_fixture(fixture_dir, page_dir, meta, values)

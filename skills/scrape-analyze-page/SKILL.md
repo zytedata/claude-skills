@@ -16,6 +16,7 @@ This is the user prompt: `$ARGUMENTS`. You need to extract the following informa
 2. Path to output file, e.g. `product1.json`. When provided, this is where you will save the structured analysis.
 3. Path to data-type spec.json. When provided, guides extraction using schema field names, descriptions, and examples.
 4. Whether to strictly extract only the fields listed in the schema, if the schema was provided. When asked for strict extraction, extract only schema fields — no extras.
+5. `--list-mode`: when present, the page is a listing page. Extract ALL repeated item instances (e.g., every product card) as an array rather than a single-item object.
 
 ## Process
 
@@ -43,11 +44,23 @@ Examine both sources and extract all meaningful data fields. For each field, det
 - **type**: str, float, int, list, or dict
 - **value**: the extracted value
 
-**Three modes** depending on arguments:
+**Four modes** depending on arguments:
 
 - **No schema** (Stage 1 — discovery): Extract all meaningful fields from the page. Invent descriptive snake_case names.
 - **Schema** (Stage 2 — default): Extract schema fields using their exact names, descriptions, and `examples` for formatting. Also extract additional fields not in the schema — they may reveal data the user didn't know about.
 - **Schema + strict** (Stage 2 — re-analysis): Extract only the schema fields. No extras.
+- **List mode** (`--list-mode`): Identify the repeating container element on the page (e.g., `article.product_pod`, `.search-result`). Extract ALL item instances using schema field names. No extras — schema fields only. Produce an array.
+
+In schema mode:
+
+- Extract every schema property that has a value and save it with the schema's exact field name.
+- For schema fields, follow the schema descriptions and examples first, preserve full values in the output file, and use the schema's JSON Schema type label (`string`, `number`, `integer`, `array`, `object`) when the schema provides one.
+- If a schema field has no value in the cleaned HTML or metadata, omit it without calling attention to the missing field in the final response.
+- Unless strict extraction was requested, also extract meaningful extra fields that are clearly present in metadata or cleaned content.
+- For extras that do not have schema types, use `str`, `float`, `int`, `list`, or `dict`.
+- For product media fields, prefer the displayed URL that matches the schema/example shape over canonical, thumbnail, zoom, or resized alternatives.
+- Meaningful extras include product breadcrumbs, complete variant/offer lists, and obvious derived counts such as `tool_count` from an extracted `tools_included` list.
+- If both a singular product image and an image list are available, save the singular best image field as well as the list when it is relevant.
 
 ### 3. Handle large values
 
@@ -59,7 +72,9 @@ For fields with large values (long text, HTML content, nested structures):
 
 If `output_path` is provided, save complete extraction to `output_path`, otherwise skip this step.
 If the user has asked for a specific format and structure, use that.
-Otherwise write a JSON file with the following structure:
+Otherwise write a JSON file with the following structure.
+
+**Standard format** (detail pages, no `--list-mode`):
 ```json
 {
   "fields": {
@@ -70,10 +85,25 @@ Otherwise write a JSON file with the following structure:
 }
 ```
 
+**List mode format** (`--list-mode`): an array of all extracted item instances:
+```json
+{
+  "url": "https://...",
+  "page_id": "list-1",
+  "html_variant": "raw",
+  "values": [
+    {"title": "A Light in the Attic", "price": "£51.77"},
+    {"title": "Tipping the Velvet", "price": "£53.74"}
+  ]
+}
+```
+
 ### 5. Return summary
 
-Return a concise summary, with field names, types and values.
-Truncate large values, if the full output was saved into a file.
+Return every saved field with its field name, type, and value. The final message must match the saved output: do not omit fields, rename fields, or replace values with count-only summaries such as "8 offers" or "24 spec values". For list and dict values, include the complete value when reasonably short; for large nested or long text values, include the field name, type, a faithful truncated preview, and the full length or item count.
+
+Before answering, read or parse the output file you wrote and build the final summary from that saved data, not from memory.
+
 Example:
 ```
 These fields were discovered:
@@ -83,3 +113,12 @@ These fields were discovered:
   rating (float): 4.5
 The full report is saved to $output_path
 ```
+
+**List mode**: report count and a sample:
+```
+list-1 (https://...), saved to $output_path:
+  20 items extracted
+  sample: title="A Light in the Attic", price="£51.77"
+```
+
+Keep the summary compact — it will be loaded into the orchestrator's main context alongside summaries from other pages.
