@@ -6,13 +6,14 @@
 Skips RDFa and Dublin Core (too noisy / too sparse to be useful).
 
 Usage:
-    uv run extract_metadata.py PAGE.html              # JSON to stdout
-    uv run extract_metadata.py PAGE.html -o meta.json  # write to file
+    uv run --python 3.14 extract_metadata.py PAGE.html              # JSON to stdout
+    uv run --python 3.14 extract_metadata.py PAGE.html -o meta.json  # write to file
 """
 
 import argparse
 import json
 import sys
+from pathlib import Path
 
 import extruct
 
@@ -48,8 +49,9 @@ def main():
 
     out = json.dumps(metadata, indent=2, ensure_ascii=False)
     if args.output:
-        with open(args.output, "w") as f:
-            f.write(out)
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(out)
     else:
         sys.stdout.write(out)
         sys.stdout.write("\n")

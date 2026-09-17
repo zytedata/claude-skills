@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": [
+              "run",
+              "--no-project",
+              "${CLAUDE_PLUGIN_ROOT}/skills/scrape/scripts/feedback_state.py",
+              "hook",
+              "--source",
+              "claude_code"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

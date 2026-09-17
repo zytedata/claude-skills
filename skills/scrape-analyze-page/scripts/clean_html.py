@@ -10,13 +10,14 @@ Levels:
         Preserves values and context for LLM understanding, not selectors.
 
 Usage:
-    uv run clean_html.py PAGE.html              # level 0, stdout
-    uv run clean_html.py PAGE.html -l1          # level 1
-    uv run clean_html.py PAGE.html -o clean.html
+    uv run --python 3.14 clean_html.py PAGE.html              # level 0, stdout
+    uv run --python 3.14 clean_html.py PAGE.html -l1          # level 1
+    uv run --python 3.14 clean_html.py PAGE.html -o clean.html
 """
 
 import argparse
 import sys
+from pathlib import Path
 
 from lxml.html import document_fromstring, tostring, HtmlComment
 
@@ -158,8 +159,9 @@ def main():
     cleaned = clean_html(html, level=args.level)
 
     if args.output:
-        with open(args.output, "w") as f:
-            f.write(cleaned)
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(cleaned)
     else:
         sys.stdout.write(cleaned)
 

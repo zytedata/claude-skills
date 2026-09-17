@@ -1,3 +1,5 @@
+This file is 180 lines long; read all of them.
+
 # Extraction Spec Format
 
 IMPORTANT: this spec is not stable.
@@ -11,14 +13,12 @@ independently.
 
 ```
 .scrape/{site-name}/
-  spec.json                    # site-level metadata
   {data-type}/                 # one folder per extraction target
     spec.json                  # schema + data type metadata
     pages/                     # saved pages for this data type
       detail-1/
         raw.html
         rendered.html
-        screenshot.png
         meta.json
       detail-2/
         ...
@@ -34,7 +34,6 @@ Example with two data types:
 
 ```
 .scrape/books-toscrape/
-  spec.json
   product/
     spec.json
     pages/detail-1/, detail-2/, detail-3/
@@ -51,15 +50,6 @@ and future category-level extraction).
 
 Working state (analysis results, intermediate data) is kept separately in
 `.scrape/.work/{site-name}/` and is not part of the spec.
-
-## Site-level spec.json
-
-```json
-{
-  "url": "https://books.toscrape.com",
-  "data_types": ["product", "navigation"]
-}
-```
 
 ## Data type spec.json
 
@@ -136,7 +126,6 @@ Each page is stored in its own directory: `pages/{type}-{n}/`. The directory con
 
 - **raw.html** — HTTP response body
 - **rendered.html** — Playwright-rendered HTML (may be absent if Playwright failed)
-- **screenshot.png** — full-page screenshot (may be absent)
 - **meta.json** — capture metadata:
 
 ```json
