@@ -61,6 +61,8 @@ def log(message: str) -> None:
 
 
 def main() -> int:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("job", help="Job key in PROJECT/SPIDER/JOB form, e.g. 123/1/45")
     parser.add_argument(

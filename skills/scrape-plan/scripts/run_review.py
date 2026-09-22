@@ -150,9 +150,8 @@ def review_url(review_dir: Path) -> str:
 
 
 def main():
-    # Feedback may contain non-ASCII; don't depend on the console encoding.
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(
         description="Open a browser review and wait for feedback"
     )

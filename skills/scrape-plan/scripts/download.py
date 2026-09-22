@@ -36,7 +36,7 @@ from scrapy.utils.project import get_project_settings
 from scrapy_zyte_api.utils import USER_AGENT as ZAPI_USER_AGENT
 
 _meta_dir = Path(__file__).parent.parent.parent / "scrape"
-_meta = json.loads((_meta_dir / "meta.json").read_text())
+_meta = json.loads((_meta_dir / "meta.json").read_text(encoding="utf-8"))
 
 SHARED_SETTINGS = {
     "TWISTED_REACTOR": "twisted.internet.asyncioreactor.AsyncioSelectorReactor",
@@ -108,7 +108,7 @@ class DownloadSpider(scrapy.Spider):
         """Write/update meta.json with task info and any extra fields."""
         meta_path = os.path.join(output_dir, "meta.json")
         if os.path.exists(meta_path):
-            with open(meta_path) as f:
+            with open(meta_path, encoding="utf-8") as f:
                 meta = json.load(f)
         else:
             meta = {
@@ -123,7 +123,7 @@ class DownloadSpider(scrapy.Spider):
                     meta.setdefault("errors", {}).update(value)
                 else:
                     meta[key] = value
-        with open(meta_path, "w") as f:
+        with open(meta_path, "w", encoding="utf-8") as f:
             json.dump(meta, f, indent=2, ensure_ascii=False)
 
     async def start(self):
@@ -232,6 +232,8 @@ class DownloadSpider(scrapy.Spider):
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(
         description="Download web pages via Zyte API or Scrapy + Playwright",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -277,7 +279,7 @@ def main():
         )
 
     os.makedirs(os.path.dirname(log_file) or ".", exist_ok=True)
-    file_handler = logging.FileHandler(log_file, mode="a")
+    file_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
     file_handler.setFormatter(
         logging.Formatter("%(asctime)s [%(name)s] %(levelname)s: %(message)s")
     )
@@ -314,7 +316,7 @@ def main():
             "files": [f for f in all_files if os.path.exists(os.path.join(output_dir, f))],
         }
         if os.path.exists(meta_path):
-            with open(meta_path) as f:
+            with open(meta_path, encoding="utf-8") as f:
                 meta = json.load(f)
             if "http_status" in meta:
                 result["http_status"] = meta["http_status"]

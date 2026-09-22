@@ -23,6 +23,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
+import sys
 from typing import Any
 
 UTC = timezone.utc
@@ -526,6 +527,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     args = parse_args()
     state_file = args.state_file.expanduser()
     marker_file = args.marker_file.expanduser()

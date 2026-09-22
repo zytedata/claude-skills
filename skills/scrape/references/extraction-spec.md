@@ -1,4 +1,4 @@
-This file is 180 lines long; read all of them.
+This file is 184 lines long; read all of them.
 
 # Extraction Spec Format
 
@@ -91,13 +91,17 @@ Every field must have `type` and `description`.
 
 ### Navigation schema
 
-Navigation is a standard data type with a fixed schema:
+Navigation is a standard data type with a fixed schema. It also carries the
+crawl entry points and scope, which are properties of the crawl rather than of
+any one extraction target:
 
 ```json
 {
   "url": "https://books.toscrape.com",
   "data_type": "navigation",
   "html_variant": "raw",
+  "start_urls": ["https://books.toscrape.com/catalogue/category/books/travel_2/index.html"],
+  "scope": "Books in the Travel category, following pagination.",
   "schema": {
     "type": "object",
     "properties": {

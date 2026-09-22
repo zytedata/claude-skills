@@ -24,7 +24,7 @@ from collections import OrderedDict
 def parse_groups(groups_file):
     """Parse the numbered groups output from extract_links.py --group."""
     groups = []
-    with open(groups_file) as f:
+    with open(groups_file, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -83,13 +83,15 @@ def write_classified(groups, index_to_type, pages_dir):
             )
             continue
         out_path = os.path.join(page_dir, "links.json")
-        with open(out_path, "w") as f:
+        with open(out_path, "w", encoding="utf-8") as f:
             json.dump(classified, f, indent=2, ensure_ascii=False)
         total = sum(len(v) for v in classified.values())
         print(f"[classify] wrote {out_path} ({total} links)", file=sys.stderr)
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("groups_file", help="Path to saved extract_links.py --group output")
     parser.add_argument(

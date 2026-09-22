@@ -12,7 +12,7 @@ import shub.config
 SKILL = "zyte"
 
 _meta_dir = Path(__file__).parent.parent.parent / "scrape"
-_meta = json.loads((_meta_dir / "meta.json").read_text())
+_meta = json.loads((_meta_dir / "meta.json").read_text(encoding="utf-8"))
 
 
 def get_api_key() -> str:

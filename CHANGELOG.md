@@ -1,6 +1,24 @@
-This file is 167 lines long; read all of them.
+This file is 185 lines long; read all of them.
 
 # Changelog
+
+## 0.3.1 (2026-09-22)
+
+### Improved
+
+- `/scrape-plan`: the extraction spec now records the crawl scope and start
+  URLs, so the intended coverage survives into spider generation and spec
+  reuse. Both are shown in the plan presented for approval and can be changed
+  there (a different section, added filtering, different start URLs) like any
+  other part of the plan.
+
+### Fixed
+
+- `/scrape-analyze-page`: HTML comments are now stripped when cleaning a page
+  before analysis; previously they slipped through and inflated the HTML
+  passed to extraction.
+- Skill scripts now read and write UTF-8 regardless of the platform default,
+  fixing crashes on Windows when pages or specs contain non-ASCII characters.
 
 ## 0.3.0 (2026-09-17)
 

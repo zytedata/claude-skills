@@ -38,6 +38,8 @@ def read_html(path):
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("html_file", help="Path to HTML file")
     parser.add_argument("-o", "--output", help="Output file (default: stdout)")
@@ -51,7 +53,7 @@ def main():
     if args.output:
         output = Path(args.output)
         output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(out)
+        output.write_text(out, encoding="utf-8")
     else:
         sys.stdout.write(out)
         sys.stdout.write("\n")

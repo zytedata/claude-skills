@@ -19,7 +19,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from lxml.html import document_fromstring, tostring, HtmlComment
+from lxml.html import document_fromstring, tostring
 
 
 KILL_TAGS_L0 = frozenset({"style", "svg"})
@@ -70,7 +70,7 @@ def clean_html(html: str, level: int = 0) -> str:
     for el in list(doc.iter()):
         if isinstance(el.tag, str) and el.tag in kill_tags:
             el.drop_tree()
-        elif isinstance(el.tag, HtmlComment):
+        elif not isinstance(el.tag, str):
             el.drop_tree()
 
     # Pass 2: strip noisy attributes
@@ -148,6 +148,8 @@ def read_html(path):
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("html_file", help="Path to HTML file")
     parser.add_argument("-o", "--output", help="Output file (default: stdout)")
@@ -161,7 +163,7 @@ def main():
     if args.output:
         output = Path(args.output)
         output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(cleaned)
+        output.write_text(cleaned, encoding="utf-8")
     else:
         sys.stdout.write(cleaned)
 

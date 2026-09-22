@@ -23,8 +23,8 @@ def extract_nav_values(page_dir: Path) -> Optional[dict]:
     if not links_path.exists() or not meta_path.exists():
         return None
 
-    links = json.loads(links_path.read_text())
-    meta = json.loads(meta_path.read_text())
+    links = json.loads(links_path.read_text(encoding="utf-8"))
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
 
     next_pages = links.get("nextPage", [])
     next_page = next_pages[0]["url"] if next_pages else None
@@ -40,6 +40,8 @@ def extract_nav_values(page_dir: Path) -> Optional[dict]:
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} <nav_dir>", file=sys.stderr)
         sys.exit(1)
@@ -62,7 +64,7 @@ def main():
         if result is None:
             continue
         out_path = values_dir / f"{page_dir.name}.json"
-        out_path.write_text(json.dumps(result, indent=2) + "\n")
+        out_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
         count += 1
 
     print(f"Wrote {count} navigation values to {values_dir}/")

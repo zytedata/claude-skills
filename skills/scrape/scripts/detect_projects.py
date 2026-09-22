@@ -22,6 +22,7 @@ Prints a JSON array of candidates:
 """
 
 import json
+import sys
 from pathlib import Path
 
 IGNORED = {
@@ -64,4 +65,6 @@ def find_candidates(cwd: Path) -> list[dict]:
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     print(json.dumps(find_candidates(Path.cwd()), indent=2))

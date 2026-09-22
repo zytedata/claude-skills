@@ -160,6 +160,8 @@ def summarize_organizations(resolved_projects: list[dict[str, Any]]) -> list[dic
 
 
 def main() -> None:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     args = parse_args()
 
     try:

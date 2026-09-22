@@ -90,6 +90,8 @@ def find_tag(scrapy_version: str | None = None, url: str = TAGS_URL) -> str | No
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     scrapy_version = sys.argv[1] if len(sys.argv) > 1 else None
     tag = find_tag(scrapy_version)
     if tag:

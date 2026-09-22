@@ -127,6 +127,8 @@ def fail(message: str) -> NoReturn:
 
 
 def main() -> None:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     args = parse_args()
     if args.check_key:
         read_stats_api_key()

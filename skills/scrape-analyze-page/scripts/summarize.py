@@ -22,7 +22,7 @@ MAX_CHARS = 100
 
 
 def load(path: Path):
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     try:
         return json.loads(text)
     except json.JSONDecodeError:
@@ -96,6 +96,8 @@ def summarize(data, path: Path) -> str:
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output_file", help="Analysis file written by the skill")
     args = parser.parse_args()

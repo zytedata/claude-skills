@@ -10,6 +10,7 @@ Run it to report which credentials are available:
 """
 
 import os
+import sys
 from pathlib import Path
 
 ENV_FILE = Path(".env")
@@ -41,5 +42,7 @@ def set_var(key: str, value: str, path: Path = ENV_FILE) -> None:
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     for key in KEYS:
         print(f"{key}: {'present' if is_set(key) else 'missing'}")

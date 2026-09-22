@@ -54,7 +54,7 @@ def _http_input(page_dir: Path, meta: dict) -> HttpResponse:
 
 
 def _browser_input(page_dir: Path, meta: dict) -> BrowserResponse:
-    html = (page_dir / "rendered.html").read_text(errors="replace")
+    html = (page_dir / "rendered.html").read_text(encoding="utf-8", errors="replace")
     return BrowserResponse(
         url=meta.get("final_url") or meta["url"],
         html=BrowserHtml(html),
@@ -104,7 +104,7 @@ def build_fixtures(
     spec_variant = None
     spec_file = spec_type_dir / "spec.json"
     if spec_file.exists():
-        spec_variant = json.loads(spec_file.read_text()).get("html_variant")
+        spec_variant = json.loads(spec_file.read_text(encoding="utf-8")).get("html_variant")
     variant = _resolve_variant(spec_variant, variant)
 
     base_dir = project_dir / "fixtures" / class_path
@@ -122,13 +122,13 @@ def build_fixtures(
             skipped.append({"page": page_id, "reason": "no expected values"})
             continue
 
-        meta = json.loads(meta_file.read_text())
+        meta = json.loads(meta_file.read_text(encoding="utf-8"))
         page_input = _make_input(page_dir, meta, variant)
         if page_input is None:
             skipped.append({"page": page_id, "reason": "no HTML captured"})
             continue
 
-        values_data = json.loads(values_file.read_text())
+        values_data = json.loads(values_file.read_text(encoding="utf-8"))
         item = values_data.get("values", values_data)
 
         fixture_meta = None
@@ -161,6 +161,8 @@ def build_fixtures(
 
 
 def main() -> None:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(
         description="Generate web-poet fixtures from a scrape extraction spec"
     )

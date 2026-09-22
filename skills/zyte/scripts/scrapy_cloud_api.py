@@ -153,6 +153,8 @@ def load_json_body(path: str) -> dict:
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(
         description="Wrapper to interact with the Scrapy Cloud API while avoiding leaking API keys."
     )

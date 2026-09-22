@@ -15,7 +15,7 @@ from pathlib import Path
 
 def load_schema_fields(spec_path: Path) -> set[str]:
     """Return the set of field names from spec.json's schema.properties."""
-    spec = json.loads(spec_path.read_text())
+    spec = json.loads(spec_path.read_text(encoding="utf-8"))
     return set(spec.get("schema", {}).get("properties", {}).keys())
 
 
@@ -32,6 +32,8 @@ def extract_values(analysis: dict, schema_fields: set[str]) -> dict:
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="Extract values from analysis files")
     parser.add_argument("analysis_dir", help="Directory with analysis files")
     parser.add_argument("spec", help="Path to data-type spec.json")
@@ -58,10 +60,10 @@ def main():
     for f in files:
         # detail-1.rendered.json → page_id = detail-1
         page_id = f.name.rsplit(".", 2)[0]
-        analysis = json.loads(f.read_text())
+        analysis = json.loads(f.read_text(encoding="utf-8"))
         result = extract_values(analysis, schema_fields)
         out_path = output_dir / f"{page_id}.json"
-        out_path.write_text(json.dumps(result, indent=2) + "\n")
+        out_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
         count += 1
 
     print(f"Wrote {count} values files to {output_dir}/")
