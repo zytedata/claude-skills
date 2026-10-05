@@ -1,8 +1,8 @@
 This file is 58 lines long; read all of them.
 
-# License Agreement for Zyte Web Data for Claude Code
+# License Agreement for Zyte Agentic Web Data for Claude Code
 
-This End-User License Agreement ("EULA") constitutes a legal agreement between you (either an individual or a legal entity) and Zyte Group Ltd. ("Zyte") and governs the use of the Zyte Web Data for Claude Code software offered through https://github.com/zytedata/claude-skills ("Software").
+This End-User License Agreement ("EULA") constitutes a legal agreement between you (either an individual or a legal entity) and Zyte Group Ltd. ("Zyte") and governs the use of the Zyte Agentic Web Data for Claude Code software offered through https://github.com/zytedata/claude-skills ("Software").
 
 By installing the Software, you represent that you have read, understood, and agree to be bound by the terms of this EULA and Zyte’s [Privacy Policy](https://www.zyte.com/terms-policies/privacy-policy/). If you are entering into this EULA on behalf of a company, organization or another legal entity (an “Entity”), you are agreeing to this EULA for that Entity and representing to Zyte that you have the authority to bind such Entity and its affiliates to this EULA and all applicable laws. If you do not have such authority, or if you do not agree to the terms of this EULA, you must not install the Software.
 

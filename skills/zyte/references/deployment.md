@@ -1,4 +1,4 @@
-This file is 93 lines long; read all of them.
+This file is 96 lines long; read all of them.
 
 # Deploying to Scrapy Cloud
 
@@ -91,3 +91,6 @@ incompatibility would then be a possible — not assumed — root cause.
 Failures are worth diagnosing before retrying; `scrapy-cloud.md` lists the
 recurring ones and their fixes. Anything outside it goes to the user with the
 full error message.
+
+Running the deployed spider, and watching and validating its jobs, is done with
+the Scrapy Cloud tools of the Zyte MCP.

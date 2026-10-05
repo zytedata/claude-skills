@@ -1,18 +1,18 @@
-This file is 207 lines long; read all of them.
+This file is 214 lines long; read all of them.
 
 <p align="center">
 	<img src="assets/zyte-logo.png" alt="Zyte" width="180">
 </p>
 
-<h1 align="center">Zyte Web Data for Claude Code</h1>
+<h1 align="center">Zyte Agentic Web Data for Claude Code</h1>
 
 <p align="center">
 	From a plain-English prompt to a working Scrapy spider.
 </p>
 
 <p align="center">
-	<a href="https://github.com/zytedata/claude-skills/releases/tag/0.3.1">
-		<img src="https://img.shields.io/badge/version-0.3.1-blue" alt="Version 0.3.1">
+	<a href="https://github.com/zytedata/claude-skills/releases/tag/0.4.0">
+		<img src="https://img.shields.io/badge/version-0.4.0-blue" alt="Version 0.4.0">
 	</a>
 	<a href="https://github.com/zytedata/claude-skills/blob/main/LICENSE.md">
 		<img src="https://img.shields.io/badge/license-Zyte%20EULA-b02cce" alt="Zyte EULA">
@@ -43,6 +43,12 @@ If `/reload-plugins` isn't available (e.g. in the VS Code extension), restart Cl
 
 See also: [Discovering and installing plugins](https://code.claude.com/docs/en/discover-plugins.md)
 
+The plugin declares the [Zyte MCP](https://docs.zyte.com/zyte-web-data/mcp.html) server itself, so do not add it with `claude mcp add` as well. Sign in to it once, in the browser, from an active session:
+
+```bash
+/mcp
+```
+
 ---
 
 ## What it does
@@ -51,7 +57,7 @@ This is Zyte's official [Claude Code](https://code.claude.com) plugin that gener
 
 The plugin explores the target site, discovers available fields, and presents a schema for your approval before generating a single line of code. After you confirm the schema, it creates a Scrapy project with all dependencies configured, generates web-poet page objects and test fixtures, wires up the spider, and runs a smoke test to verify that extraction is working before handing the project back to you.
 
-Optionally, use `/zyte` to deploy directly to [Scrapy Cloud](https://www.zyte.com/scrapy-cloud/) for scheduled runs, job history, and monitoring. A [free tier is available](https://docs.zyte.com/scrapy-cloud/pricing.md).
+Optionally, use `/zyte` to deploy directly to [Scrapy Cloud](https://www.zyte.com/scrapy-cloud/) for scheduled runs, job history, and monitoring, which the Zyte MCP handles once the spider is deployed. A [free tier is available](https://docs.zyte.com/scrapy-cloud/pricing.md).
 
 ---
 
@@ -103,7 +109,7 @@ uv run pytest fixtures/
 
 | Skill | Description |
 |---|---|
-| `zyte` | Interact with Zyte's APIs and cloud services: set up your Zyte account and credentials; deploy projects, schedule spiders, list/stop jobs, and view items or logs on [Scrapy Cloud](https://www.zyte.com/scrapy-cloud/); query historical [Zyte API](https://www.zyte.com/zyte-api/) usage stats; look up Zyte API pricing and per-website costs; and answer how-to and documentation questions about Zyte from the official docs |
+| `zyte` | Zyte work the Zyte MCP does not cover: set up your Zyte account and credentials; deploy projects to [Scrapy Cloud](https://www.zyte.com/scrapy-cloud/) and export all items, logs or requests of a job; look up [Zyte API](https://www.zyte.com/zyte-api/) plan pricing; and answer how-to and documentation questions about Zyte from the official docs |
 
 ---
 
@@ -111,6 +117,7 @@ uv run pytest fixtures/
 
 - [Claude Code](https://code.claude.com) (CLI or desktop app)
 - [`uv`](https://docs.astral.sh/uv/) — used to create and manage the Scrapy project
+- A [Zyte](https://www.zyte.com/) account, signed in once through the [Zyte MCP](https://docs.zyte.com/zyte-web-data/mcp.html) (see [Install](#install)) — used for Scrapy Cloud jobs, Zyte API usage stats and per-website prices
 
 Project dependencies (scrapy, scrapy-poet, scrapy-zyte-api, web-poet, extruct, price-parser, pytest) are installed automatically by the skills.
 
@@ -202,6 +209,6 @@ See [LICENSE.md](LICENSE.md) for the Zyte End User License Agreement.
 <p align="center">
 	<a href="https://youtu.be/KU8DJISQYeM">
 		<img src="https://img.youtube.com/vi/KU8DJISQYeM/maxresdefault.jpg"
-				 alt="Demo: Zyte Web Data for Claude Code" width="700">
+				 alt="Demo: Zyte Agentic Web Data for Claude Code" width="700">
 	</a>
 </p>

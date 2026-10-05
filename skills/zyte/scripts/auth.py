@@ -34,7 +34,7 @@ def get_api_key() -> str:
 def build_headers(component: str, *, accept: str = "application/json") -> dict:
     """Basic-auth + identifying headers for a Scrapy Cloud HTTP API request.
 
-    `component` names the calling script (e.g. "scrapy_cloud_api.py"). It is
+    `component` names the calling script (e.g. "download_key.py"). It is
     combined with this skill's name in the User-Agent string, to distinguish
     both the skill and the specific script in server-side logs.
     """

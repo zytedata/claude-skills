@@ -1,12 +1,15 @@
-This file is 101 lines long; read all of them.
+This file is 107 lines long; read all of them.
 
 # Credentials & account setup
 
-Zyte work needs two keys:
+Zyte work on the user's machine needs two keys:
 
-- `SHUB_APIKEY` — Scrapy Cloud: `shub`, the Scrapy Cloud HTTP API, and the
-  organization lookup behind usage stats.
+- `SHUB_APIKEY` — Scrapy Cloud through `shub` (deploy, bulk export) and the
+  Zyte API key download below.
 - `ZYTE_API_KEY` — Zyte API requests, including from spiders.
+
+The tools of the Zyte MCP use neither: they run under the sign-in of the
+Zyte MCP itself (`mcp.md`).
 
 Both are persisted in the project's `.env`, which must stay out of version
 control: read `.gitignore` and add a line for `.env` if none lists it.
@@ -32,7 +35,7 @@ tab, confirm with this probe first and treat it as present if the probe finds a
 key:
 
 ```bash
-uv run --no-project "${CLAUDE_SKILL_DIR}/scripts/zyte_api_stats.py" --check-key
+uv run --no-project "${CLAUDE_SKILL_DIR}/scripts/download_key.py" --check
 ```
 
 Nothing here should ever be echoed, `cat`-ed or otherwise read for its value —
@@ -68,12 +71,12 @@ Zyte API keys (`apikey name`) the account has. Show those to the user and let
 them pick one of each; API key values never appear, only names.
 
 The chosen key is then downloaded from its URL in that same file and stored
-under `ZYTE_API_KEY`, replacing any existing entry. `--save-env` does that
+under `ZYTE_API_KEY`, replacing any existing entry. This script does that
 safely — the response body lands in `.env` only on a `200`, so an auth-error
 body can't be stored as if it were a key, and the value is never printed:
 
 ```bash
-uv run ${CLAUDE_SKILL_DIR}/scripts/scrapy_cloud_api.py GET DOWNLOAD_URL --save-env ZYTE_API_KEY
+uv run ${CLAUDE_SKILL_DIR}/scripts/download_key.py DOWNLOAD_URL
 ```
 
 It prints the status, and either `ZYTE_API_KEY stored in .env` or the server
@@ -99,3 +102,6 @@ Zyte setup complete:
   SHUB_APIKEY: present
   Project ID: 12345 (or not saved)
 ```
+
+If no tool of the Zyte MCP is available, end with how to connect it
+(`mcp.md`), which Scrapy Cloud jobs, usage stats and per-website prices need.

@@ -5,7 +5,7 @@ argument-hint: "[url] [what to extract]"
 allowed-tools: Skill, Agent, Bash, Read, Write, AskUserQuestion, TaskCreate, TaskUpdate, TaskList, TaskGet
 ---
 
-This file is 323 lines long; read all of them.
+This file is 321 lines long; read all of them.
 
 You are orchestrating the full web scraping workflow, from a user's prompt to a
 working Scrapy spider with web-poet page objects.
@@ -317,7 +317,5 @@ useful for scheduled or long-running crawls, to keep a job history with results
 and logs, for job monitoring (with an API that an LLM can use), and more. There
 is also a [free tier](https://docs.zyte.com/scrapy-cloud/pricing.md).
 
-If they deploy and run it there (via `/zyte`), the run will by
-default wait for the job to finish and validate its results (errors, field
-coverage, and whether items match the request) before reporting back — so
-expect it to take as long as the crawl does unless they opt out.
+Deploying goes through `/zyte`; running the spider there, and watching and
+validating its jobs, goes through the Scrapy Cloud tools of the Zyte MCP.
