@@ -1,5 +1,11 @@
 # /// script
-# dependencies = ["parsel", "html-text"]
+# dependencies = [
+#   "parsel",
+#   "html-text",
+#   # Security floors for indirect dependencies.
+#   "lxml>=6.1.0",
+#   "lxml-html-clean>=0.4.5",
+# ]
 # ///
 """Extract links from an HTML file with structural context.
 

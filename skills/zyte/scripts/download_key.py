@@ -2,6 +2,10 @@
 # requires-python = ">=3.11"
 # dependencies = [
 #   "shub>=2.18.1",
+#   # Security floors for indirect dependencies.
+#   "certifi>=2026.10.19",
+#   "setuptools>=84.1.0",
+#   "urllib3>=2.8.0",
 # ]
 # ///
 """Download a Zyte API key into the project's .env file, without printing it.

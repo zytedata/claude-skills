@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["lxml"]
+# dependencies = ["lxml>=6.1.0"]
 # ///
 """Clean HTML for LLM consumption.
 

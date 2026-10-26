@@ -1,5 +1,21 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": [
+              "run",
+              "--no-project",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/check_marketplace.py"
+            ]
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "*",

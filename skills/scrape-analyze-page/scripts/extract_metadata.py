@@ -1,5 +1,14 @@
 # /// script
-# dependencies = ["extruct", "lxml"]
+# dependencies = [
+#   "extruct",
+#   "lxml>=6.1.0",
+#   # Security floors for indirect dependencies.
+#   "certifi>=2026.10.19",
+#   "idna>=3.15",
+#   "lxml-html-clean>=0.4.5",
+#   "soupsieve>=2.9.0",
+#   "urllib3>=2.8.0",
+# ]
 # ///
 """Extract structured metadata from HTML: JSON-LD, OpenGraph, microdata, microformat.
 

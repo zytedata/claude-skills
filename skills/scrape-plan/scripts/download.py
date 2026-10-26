@@ -1,5 +1,22 @@
 # /// script
-# dependencies = ["scrapy", "scrapy-playwright", "scrapy-zyte-api", "brotli"]
+# dependencies = [
+#   "scrapy>=2.17.0",
+#   "scrapy-playwright",
+#   "scrapy-zyte-api",
+#   "brotli>=1.2.1",
+#   # Security floors for indirect dependencies.
+#   "aiohttp>=3.14.4",
+#   "brotlicffi>=1.2.1.0; implementation_name == 'pypy'",
+#   "certifi>=2026.10.19",
+#   "cryptography>=50.0.0",
+#   "filelock>=4.2.1",
+#   "idna>=3.15",
+#   "lxml>=6.1.0",
+#   "multidict>=6.9.1",
+#   "protego>=0.6.2",
+#   "twisted>=26.4.0",
+#   "urllib3>=2.8.0",
+# ]
 # ///
 """Download web pages via Scrapy + Playwright or Zyte API.
 

@@ -4,6 +4,10 @@
 #   "flask>=3.0.0",
 #   "requests>=2.32.0",
 #   "waitress>=3.0.0",
+#   # Security floors for indirect dependencies.
+#   "certifi>=2026.10.19",
+#   "urllib3>=2.8.0",
+#   "werkzeug>=3.1.9",
 # ]
 # ///
 

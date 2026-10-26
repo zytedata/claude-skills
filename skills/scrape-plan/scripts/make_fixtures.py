@@ -1,5 +1,14 @@
 # /// script
-# dependencies = ["web-poet>=0.24.0"]
+# dependencies = [
+#   "web-poet>=0.24.0",
+#   # Security floors for indirect dependencies.
+#   "certifi>=2026.10.19",
+#   "filelock>=4.2.1",
+#   "idna>=3.15",
+#   "lxml>=6.1.0",
+#   "multidict>=6.9.1",
+#   "urllib3>=2.8.0",
+# ]
 # ///
 """Generate web-poet test fixtures from a scrape extraction spec.
 

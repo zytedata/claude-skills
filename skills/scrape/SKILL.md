@@ -2,10 +2,10 @@
 name: scrape
 description: Build a full-site or multi-page Scrapy spider to get structured data from a website, in a new project or added to an existing one. Do not use for analyzing locally saved HTML, fixing or debugging an existing spider, schema-only or existing-spec work, Scrapy Cloud operations, or advisory questions.
 argument-hint: "[url] [what to extract]"
-allowed-tools: Skill, Agent, Bash, Read, Write, AskUserQuestion, TaskCreate, TaskUpdate, TaskList, TaskGet
+allowed-tools: Skill, Agent, Bash, Read, Write, AskUserQuestion
 ---
 
-This file is 321 lines long; read all of them.
+This file is 307 lines long; read all of them.
 
 You are orchestrating the full web scraping workflow, from a user's prompt to a
 working Scrapy spider with web-poet page objects.
@@ -84,24 +84,10 @@ is a plausible match, use that class. If multiple classes plausibly match, ask t
 user which one to reuse. If none match, reuse the project but define a new data type
 normally; fields from an unrelated item class must not leak into the new schema.
 
-## Track progress
-
-After project reuse/new-project mode is decided and before Stage 1, create
-exactly these tasks with `TaskCreate`, in order:
-  1. "Plan and validate the scrape" — `/scrape-plan`
-  2. "Build the Scrapy project, page objects and spider" (or "Extend the
-     existing Scrapy project with the new spider" when reusing) — Stage 2,
-     using `/scrapy-extra` for conventions
+## Workflow
 
 Stop after any stage when that satisfies the user's request, for example after
 plan approval.
-
-As you launch each skill, `TaskUpdate` the task to `in_progress`. Mark it `completed`
-only after the skill returns successfully. Do not batch updates — flip status at
-the boundary so the user sees live progress.
-
-Do NOT create tasks inside the sub-skills; they share this session's task list
-and would duplicate entries.
 
 Each stage's result feeds the next: the validated plan feeds the build stage.
 For a normal end-to-end request, run both stages, a limited test crawl, and the
